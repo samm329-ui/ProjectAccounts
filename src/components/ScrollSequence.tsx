@@ -16,10 +16,7 @@ import React, {
 } from "react";
 
 // --- Configuration ---
-const TOTAL_FRAMES = 400;
-const FRAME_PATH = "/sequence/";
-const FRAME_PREFIX = "frame_";
-const FRAME_EXTENSION = "webp";
+const TOTAL_FRAMES = 140;
 const SCROLL_HEIGHT = `${TOTAL_FRAMES * 2}vh`;
 
 type TextOverlay = {
@@ -61,10 +58,8 @@ const NARRATIVE_BEATS: TextOverlay[] = [
   },
 ];
 
-const FRAME_DIGITS = String(TOTAL_FRAMES - 1).length;
 const getFrameSrc = (index: number): string => {
-  const paddedIndex = String(index).padStart(FRAME_DIGITS, '0');
-  return `${FRAME_PATH}${FRAME_PREFIX}${paddedIndex}.${FRAME_EXTENSION}`;
+  return `https://picsum.photos/seed/csh-${index}/1920/1080`;
 }
 
 const lerp = (start: number, end: number, amt: number): number => {
@@ -139,6 +134,7 @@ export default function ScrollSequence() {
       const imagePromises: Promise<HTMLImageElement>[] = [];
       for (let i = 0; i < TOTAL_FRAMES; i++) {
         const img = new Image();
+        img.crossOrigin = "anonymous";
         const promise = new Promise<HTMLImageElement>((resolve, reject) => {
           img.onload = () => {
             setFramesLoaded((prev) => prev + 1);
