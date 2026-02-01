@@ -1,0 +1,37 @@
+[
+  {
+    "phase": 0,
+    "title": "MVP foundation",
+    "goals": ["Google Sheets backend", "Project list", "Payment timeline"],
+    "eta": "Q2 2026",
+    "progress": 95
+  },
+  {
+    "phase": 1,
+    "title": "Team workflows",
+    "goals": ["Member ledger", "Passcode access", "Audit logs"],
+    "eta": "Q3 2026",
+    "progress": 60
+  },
+  {
+    "phase": 2,
+    "title": "Client portal",
+    "goals": ["View-only links", "Client receipts", "Export CSV"],
+    "eta": "Q4 2026",
+    "progress": 40
+  },
+  {
+    "phase": 3,
+    "title": "Automations",
+    "goals": ["Email receipts", "Recurring payments", "CSV sync"],
+    "eta": "Q1 2027",
+    "progress": 20
+  },
+  {
+    "phase": 4,
+    "title": "Scale & Integrations",
+    "goals": ["Plugin for Dr. Drift", "Multi-brand support"],
+    "eta": "Q2 2027",
+    "progress": 5
+  }
+]
