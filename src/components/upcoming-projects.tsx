@@ -1,7 +1,5 @@
 "use client";
-import { motion } from "framer-motion";
-import { phases, type Phase } from "@/lib/phases";
-import Link from "next/link";
+import MagicBento from './MagicBento'
 
 export function UpcomingProjects() {
   return (
@@ -22,40 +20,20 @@ export function UpcomingProjects() {
           goals and ETA.
         </p>
 
-        <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {phases.map((phase: Phase, index) => (
-            <Link href={`/phases/${phase.phase}`} key={phase.phase}>
-              <motion.div
-                layoutId={phase.phase === 0 ? undefined : `phase-card-${phase.phase}`}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="group relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 shadow-lg backdrop-blur-md transition-all duration-300 hover:border-white/20 hover:-translate-y-1 hover:shadow-2xl h-full cursor-pointer"
-              >
-                <div className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-foreground">
-                        Phase {phase.phase}
-                      </span>
-                      {phase.status && (
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-medium ${
-                            phase.status === "On going"
-                              ? "bg-green-500/10 text-green-400"
-                              : "bg-primary/10 text-primary"
-                          }`}
-                        >
-                          {phase.status}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </Link>
-          ))}
+        <div className="mt-12 flex items-center justify-center">
+          <MagicBento 
+            textAutoHide={true}
+            enableStars={false}
+            enableSpotlight
+            enableBorderGlow={true}
+            enableTilt
+            enableMagnetism={false}
+            clickEffect
+            spotlightRadius={370}
+            particleCount={12}
+            glowColor="132, 0, 255"
+            disableAnimations={false}
+          />
         </div>
       </div>
     </section>
