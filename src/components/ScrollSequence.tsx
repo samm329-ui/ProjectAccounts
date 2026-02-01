@@ -31,30 +31,30 @@ const NARRATIVE_BEATS: TextOverlay[] = [
   {
     start: 0.0,
     end: 0.25,
-    position: "center",
-    title: "CanvasScrollHero",
-    subtitle: "Awwwards-level scrollytelling.",
+    position: "left",
+    title: "Modern Account Management",
+    subtitle: "Seamlessly track your finances with our intuitive platform.",
   },
   {
     start: 0.3,
     end: 0.55,
     position: "left",
-    title: "Fluid Motion",
-    subtitle: "Powered by Framer Motion, smoothed with LERP for a cinematic feel.",
+    title: "Secure & Encrypted",
+    subtitle: "Your data is protected with bank-level security.",
   },
   {
     start: 0.6,
     end: 0.85,
     position: "right",
-    title: "High Performance",
-    subtitle: "Optimized with HTML5 Canvas and image preloading.",
+    title: "Real-time Insights",
+    subtitle: "Get instant updates and reports on your financial activity.",
   },
   {
     start: 0.9,
     end: 1.0,
     position: "center",
-    title: "Ready for Anything",
-    subtitle: "A reusable component for any brand.",
+    title: "All Your Accounts in One Place",
+    subtitle: "Connect everything from bank accounts to credit cards.",
   },
 ];
 
@@ -173,13 +173,11 @@ export default function ScrollSequence() {
       let y = 0;
 
       if (imgRatio > canvasRatio) {
-        // Image is wider than canvas, fit height and crop width
         drawHeight = canvas.height;
         drawWidth = drawHeight * imgRatio;
         x = (canvas.width - drawWidth) / 2;
         y = 0;
       } else {
-        // Image is taller than canvas, fit width and crop height
         drawWidth = canvas.width;
         drawHeight = drawWidth / imgRatio;
         x = 0;
@@ -237,9 +235,9 @@ export default function ScrollSequence() {
   
   return (
     <div ref={scrollRef} style={{ height: SCROLL_HEIGHT }} className="relative">
-      {loading && <Loader progress={(framesLoaded / TOTAL_FRAMES) * 100} />}
       <div className="sticky top-0 h-screen w-full overflow-hidden">
-        <canvas ref={canvasRef} className="h-full w-full" />
+        {loading && <Loader progress={(framesLoaded / TOTAL_FRAMES) * 100} />}
+        <canvas ref={canvasRef} className={cn("h-full w-full", loading && "opacity-0")} />
         {!loading && NARRATIVE_BEATS.map((beat, index) => (
           <TextOverlay key={index} beat={beat} scrollYProgress={scrollYProgress} />
         ))}
