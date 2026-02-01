@@ -38,7 +38,6 @@ const MOBILE_BREAKPOINT = 768;
 const cardData: BentoCardProps[] = phases.map((p): BentoCardProps => ({
   color: '#060010',
   title: p.title,
-  description: p.goals.join(' • '),
   label: `Phase ${p.phase}`,
   link: `/phases/${p.phase}`,
   phase: p,
@@ -670,11 +669,6 @@ const MagicBento: React.FC<BentoProps> = ({
                     <h3 className={`card__title font-normal text-base m-0 mb-1 ${textAutoHide ? 'text-clamp-1' : ''}`}>
                       {card.title}
                     </h3>
-                    <p
-                      className={`card__description text-xs leading-5 opacity-90 ${textAutoHide ? 'text-clamp-2' : ''}`}
-                    >
-                      {card.description}
-                    </p>
                   </div>
                 </>
               );
