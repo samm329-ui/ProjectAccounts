@@ -22,6 +22,9 @@ import {
 import { getTeamLedger, getClients } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+
 
 const TeamContent = () => {
     const [ledger, setLedger] = useState<any[]>([]);
@@ -48,6 +51,10 @@ const TeamContent = () => {
 
   return (
     <div className="space-y-8">
+        <Link href="/phases/0" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
+            <ArrowLeft size={16} />
+            Back to Phase 0
+        </Link>
         <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-foreground">Team Ledger</h1>
              <Badge variant="outline" className="border-accent text-accent">Team Access</Badge>

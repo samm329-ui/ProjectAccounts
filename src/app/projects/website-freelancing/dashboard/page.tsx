@@ -8,6 +8,7 @@ import {
   Wallet,
   ArrowUpRight,
   TrendingUp,
+  ArrowLeft,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -24,6 +25,7 @@ import {
 } from 'recharts';
 import { getSummary, getPayments } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))'];
 
@@ -81,6 +83,10 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <Link href="/phases/0" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
+        <ArrowLeft size={16} />
+        Back to Phase 0
+      </Link>
       <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
 
       {/* Summary Cards */}

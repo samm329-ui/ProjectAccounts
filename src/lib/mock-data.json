@@ -18,7 +18,20 @@
       "businessType": "Tech Startup",
       "startDate": "2023-01-15",
       "assignedMember": "member_1",
-      "status": "Active"
+      "status": "Active",
+      "costs": {
+        "serviceCost": 50000,
+        "domainCharged": 5000,
+        "actualDomainCost": 2000,
+        "extraFeatures": 3000,
+        "extraProductionCharges": 1000
+      },
+      "financials": {
+        "totalValue": 95000,
+        "paid": 45000,
+        "pending": 50000,
+        "profit": 38000
+      }
     },
     {
       "clientId": "client_2",
@@ -27,7 +40,20 @@
       "businessType": "E-commerce",
       "startDate": "2023-02-20",
       "assignedMember": "member_2",
-      "status": "Active"
+      "status": "Active",
+      "costs": {
+        "serviceCost": 30000,
+        "domainCharged": 1500,
+        "actualDomainCost": 1500,
+        "extraFeatures": 5000,
+        "extraProductionCharges": 0
+      },
+      "financials": {
+        "totalValue": 48000,
+        "paid": 20000,
+        "pending": 28000,
+        "profit": 15000
+      }
     },
     {
       "clientId": "client_3",
@@ -36,7 +62,20 @@
       "businessType": "Marketplace",
       "startDate": "2023-03-10",
       "assignedMember": "member_1",
-      "status": "Completed"
+      "status": "Completed",
+       "costs": {
+        "serviceCost": 15000,
+        "domainCharged": 1000,
+        "actualDomainCost": 1000,
+        "extraFeatures": 0,
+        "extraProductionCharges": 0
+      },
+      "financials": {
+        "totalValue": 16000,
+        "paid": 16000,
+        "pending": 0,
+        "profit": 10000
+      }
     }
   ],
   "payments": [
@@ -131,32 +170,42 @@
   ],
   "logs": [
       {
-          "logId": "log_1",
-          "time": "10:32 AM",
-          "role": "Admin",
-          "action": "ADD_PAYMENT",
-          "details": "Added ₹25,000 for Innovate Inc."
+        "logId": "log_5",
+        "timestamp": "2024-07-29T10:30:00Z",
+        "actor": "Admin",
+        "action": "Changed Domain Charged",
+        "details": {
+            "from": 4000,
+            "to": 5000
+        }
       },
       {
-          "logId": "log_2",
-          "time": "11:15 AM",
-          "role": "Team",
-          "action": "ADD_EXPENSE",
-          "details": "Spent ₹1,200 on software."
+        "logId": "log_6",
+        "timestamp": "2024-07-29T10:05:00Z",
+        "actor": "Admin",
+        "action": "Changed Service Cost",
+        "details": {
+            "from": 86000,
+            "to": 50000
+        }
+      },
+      {
+        "logId": "log_7",
+        "timestamp": "2024-07-29T09:30:00Z",
+        "actor": "NeeFal",
+        "action": "Added Payment",
+        "details": {
+            "amount": 20000,
+            "type": "Credit",
+            "mode": "Cash"
+        }
       },
        {
           "logId": "log_3",
-          "time": "01:45 PM",
-          "role": "Admin",
+          "timestamp": "2024-07-28T13:45:00Z",
+          "actor": "Admin",
           "action": "CREATE_CLIENT",
           "details": "Added new client Healthful Foods"
-      },
-       {
-          "logId": "log_4",
-          "time": "03:05 PM",
-          "role": "Admin",
-          "action": "UPDATE_COST",
-          "details": "Updated costs for Innovate Inc."
       }
   ]
 }
