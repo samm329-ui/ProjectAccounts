@@ -16,7 +16,7 @@ import React, {
 } from "react";
 
 // --- Configuration ---
-const TOTAL_FRAMES = 140;
+const TOTAL_FRAMES = 453;
 const SCROLL_HEIGHT = `${TOTAL_FRAMES * 2}vh`;
 
 type TextOverlay = {
@@ -173,11 +173,17 @@ export default function ScrollSequence() {
       let y = 0;
 
       if (imgRatio > canvasRatio) {
-        drawHeight = canvas.width / imgRatio;
-        y = (canvas.height - drawHeight) / 2;
-      } else {
-        drawWidth = canvas.height * imgRatio;
+        // Image is wider than canvas, fit height and crop width
+        drawHeight = canvas.height;
+        drawWidth = drawHeight * imgRatio;
         x = (canvas.width - drawWidth) / 2;
+        y = 0;
+      } else {
+        // Image is taller than canvas, fit width and crop height
+        drawWidth = canvas.width;
+        drawHeight = drawWidth / imgRatio;
+        x = 0;
+        y = (canvas.height - drawHeight) / 2;
       }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
