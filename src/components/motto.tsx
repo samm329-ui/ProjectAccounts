@@ -1,5 +1,12 @@
 "use client";
 import { motion } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export function Motto() {
   return (
@@ -31,12 +38,31 @@ export function Motto() {
             rupee or a promise.
           </p>
           <div className="mt-8">
-            <a
-              href="#"
-              className="inline-block rounded-lg bg-gradient-to-r from-[#6B5DF9] to-[#5CE7F4] px-8 py-3 text-lg font-semibold text-white shadow-[0_0_20px_rgba(159,111,255,0.4)] transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(159,111,255,0.6)]"
-            >
-              See Demo →
-            </a>
+            <Dialog>
+              <DialogTrigger asChild>
+                <button
+                  className="inline-block rounded-lg bg-gradient-to-r from-[#6B5DF9] to-[#5CE7F4] px-8 py-3 text-lg font-semibold text-white shadow-[0_0_20px_rgba(159,111,255,0.4)] transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(159,111,255,0.6)]"
+                >
+                  See More →
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md bg-card/80 backdrop-blur-lg border-white/10 text-card-foreground">
+                <DialogHeader>
+                  <DialogTitle>Our Philosophy</DialogTitle>
+                </DialogHeader>
+                <div className="py-4 space-y-4 text-muted-foreground">
+                  <p>
+                    We believe money should never be confusing, hidden, or reactive. Every project, every payment, and every expense deserves a clear trail and a clear purpose.
+                  </p>
+                  <p>
+                    This system exists to replace guesswork with visibility — so founders always know where money is coming from, where it is going, and why it is moving.
+                  </p>
+                  <p>
+                    Not to complicate operations, but to simplify decisions. Not to automate blindly, but to preserve control. Not to scale chaos, but to build discipline from day one.
+                  </p>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </motion.div>
       </div>
