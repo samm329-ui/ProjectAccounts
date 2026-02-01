@@ -66,7 +66,7 @@ export function UpcomingProjects() {
         </p>
 
         <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {phases.map((phase, index) => (
+          {phases.map((phase: any, index) => (
             <motion.div
               key={phase.phase}
               initial={{ opacity: 0, y: 20 }}
@@ -77,16 +77,23 @@ export function UpcomingProjects() {
             >
               <div className="p-6">
                 <div className="flex items-center justify-between">
-                  <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-foreground">
-                    Phase {phase.phase}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-foreground">
+                      Phase {phase.phase}
+                    </span>
+                    {phase.status && (
+                      <span className="rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-medium">
+                        {phase.status}
+                      </span>
+                    )}
+                  </div>
                   <ProgressRing progress={phase.progress} />
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-foreground">
                   {phase.title}
                 </h3>
                 <ul className="mt-3 space-y-2 text-sm">
-                  {phase.goals.map((goal) => (
+                  {phase.goals.map((goal: string) => (
                     <li key={goal} className="flex items-center gap-2 text-muted-foreground">
                       <CheckCircle2 className="h-4 w-4 text-primary/70 shrink-0" />
                       <span>{goal}</span>

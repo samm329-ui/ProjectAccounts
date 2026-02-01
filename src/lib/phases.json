@@ -11,27 +11,31 @@
     "title": "Team workflows",
     "goals": ["Member ledger", "Passcode access", "Audit logs"],
     "eta": "Q3 2026",
-    "progress": 60
+    "progress": 60,
+    "status": "Upcoming"
   },
   {
     "phase": 2,
     "title": "Client portal",
     "goals": ["View-only links", "Client receipts", "Export CSV"],
     "eta": "Q4 2026",
-    "progress": 40
+    "progress": 40,
+    "status": "Upcoming"
   },
   {
     "phase": 3,
     "title": "Automations",
     "goals": ["Email receipts", "Recurring payments", "CSV sync"],
     "eta": "Q1 2027",
-    "progress": 20
+    "progress": 20,
+    "status": "Upcoming"
   },
   {
     "phase": 4,
     "title": "Scale & Integrations",
     "goals": ["Plugin for Dr. Drift", "Multi-brand support"],
     "eta": "Q2 2027",
-    "progress": 5
+    "progress": 5,
+    "status": "Upcoming"
   }
 ]
