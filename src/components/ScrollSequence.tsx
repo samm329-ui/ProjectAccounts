@@ -16,7 +16,7 @@ import React, {
 } from "react";
 
 // --- Configuration ---
-const TOTAL_FRAMES = 453;
+const TOTAL_FRAMES = 150; // Reduced for faster loading
 const SCROLL_HEIGHT = `${TOTAL_FRAMES * 2}vh`;
 
 type TextOverlay = {
@@ -28,38 +28,39 @@ type TextOverlay = {
 };
 
 const NARRATIVE_BEATS: TextOverlay[] = [
-  {
-    start: 0.0,
-    end: 0.25,
-    position: "left",
-    title: "Modern Account Management",
-    subtitle: "Seamlessly track your finances with our intuitive platform.",
-  },
-  {
-    start: 0.3,
-    end: 0.55,
-    position: "left",
-    title: "Secure & Encrypted",
-    subtitle: "Your data is protected with bank-level security.",
-  },
-  {
-    start: 0.6,
-    end: 0.85,
-    position: "right",
-    title: "Real-time Insights",
-    subtitle: "Get instant updates and reports on your financial activity.",
-  },
-  {
-    start: 0.9,
-    end: 1.0,
-    position: "center",
-    title: "All Your Accounts in One Place",
-    subtitle: "Connect everything from bank accounts to credit cards.",
-  },
-];
+    {
+      start: 0.05,
+      end: 0.25,
+      position: "left",
+      title: "Transparent Financial Records",
+      subtitle: "Every transaction, logged with uncompromised honesty and clarity.",
+    },
+    {
+      start: 0.3,
+      end: 0.55,
+      position: "left",
+      title: "Swift & Secure Processing",
+      subtitle: "Experience rapid transaction recording with bank-level security.",
+    },
+    {
+      start: 0.6,
+      end: 0.85,
+      position: "right",
+      title: "Your Complete Financial Picture",
+      subtitle: "A unified view of all your accounts for real-time insights.",
+    },
+    {
+      start: 0.9,
+      end: 1.0,
+      position: "center",
+      title: "Your Financial Truth, Instantly.",
+      subtitle: "Fast, honest, and comprehensive record-keeping at your fingertips.",
+    },
+  ];
 
 const getFrameSrc = (index: number): string => {
-  const frameIndex = 1000 + index;
+  // We'll skip frames to make the animation work with fewer images
+  const frameIndex = 1000 + Math.floor(index * (453 / TOTAL_FRAMES));
   return `https://olcukmvtctbvutjcrmph.supabase.co/storage/v1/object/public/assest/hero%20animation/accounts%20png/Sequence%2001_${frameIndex}.png`;
 };
 
@@ -68,17 +69,13 @@ const lerp = (start: number, end: number, amt: number): number => {
 };
 
 const Loader = ({ progress }: { progress: number }) => (
-  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#050505] text-white/80">
-    <div
-      className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin"
-      role="status"
-      aria-label="Loading"
-    ></div>
-    <p className="mt-4 font-mono text-sm tracking-wider">
-      {Math.round(progress)}%
-    </p>
-  </div>
-);
+    <div className="sticky top-0 z-20 flex flex-col items-center justify-end pb-32 bg-[#050505]/90 backdrop-blur-sm text-white/80 h-screen">
+      <p className="font-mono text-sm tracking-wider mb-2">Loading cinematic experience...</p>
+      <div className="w-64 h-1 bg-white/20 rounded-full overflow-hidden">
+          <div className="h-1 bg-white rounded-full transition-all duration-300" style={{width: `${progress}%`}}></div>
+      </div>
+    </div>
+  );
 
 const TextOverlay = ({ beat, scrollYProgress }: { beat: TextOverlay, scrollYProgress: MotionValue<number> }) => {
   const opacity = useTransform(
@@ -165,27 +162,8 @@ export default function ScrollSequence() {
       canvas.width = rect.width;
       canvas.height = rect.height;
 
-      const imgRatio = img.naturalWidth / img.naturalHeight;
-      const canvasRatio = canvas.width / canvas.height;
-      let drawWidth = canvas.width;
-      let drawHeight = canvas.height;
-      let x = 0;
-      let y = 0;
-
-      if (imgRatio > canvasRatio) {
-        drawHeight = canvas.height;
-        drawWidth = drawHeight * imgRatio;
-        x = (canvas.width - drawWidth) / 2;
-        y = 0;
-      } else {
-        drawWidth = canvas.width;
-        drawHeight = drawWidth / imgRatio;
-        x = 0;
-        y = (canvas.height - drawHeight) / 2;
-      }
-
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, x, y, drawWidth, drawHeight);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     },
     []
   );
@@ -237,7 +215,7 @@ export default function ScrollSequence() {
     <div ref={scrollRef} style={{ height: SCROLL_HEIGHT }} className="relative">
       <div className="sticky top-0 h-screen w-full overflow-hidden">
         {loading && <Loader progress={(framesLoaded / TOTAL_FRAMES) * 100} />}
-        <canvas ref={canvasRef} className={cn("h-full w-full", loading && "opacity-0")} />
+        <canvas ref={canvasRef} className={cn("h-full w-full object-cover", loading && "opacity-0")} />
         {!loading && NARRATIVE_BEATS.map((beat, index) => (
           <TextOverlay key={index} beat={beat} scrollYProgress={scrollYProgress} />
         ))}
