@@ -10,83 +10,90 @@ export function About() {
       className="py-12 sm:py-16 lg:py-20"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
           <div className="flex flex-col justify-center">
+            <p className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+              About The System
+            </p>
             <h2
               id="about-heading"
-              className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
+              className="mt-4 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
             >
-              About Us
+              Built for clarity in money, projects, and accountability.
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Drift helps small-business web agencies track projects, payments,
-              and partner-led domain expenses using a lightweight, 100% free
-              Google Sheets backend. We focus on founder-level control, fast
-              audits, and visual clarity.
+            <p className="mt-6 text-lg text-muted-foreground">
+              This system is an internal accounting and operations dashboard
+              designed to give founders complete visibility over projects,
+              payments, and team-led expenses. It replaces scattered
+              spreadsheets with a single, structured view—without introducing
+              complex accounting software or paid tools.
             </p>
-            <div className="mt-8 flex flex-wrap gap-4">
-              <div className="flex items-center gap-3 rounded-full bg-white/5 px-4 py-2 border border-white/10">
-                <Check className="h-4 w-4 text-green-400" />
-                <span className="text-sm font-medium text-foreground">
-                  Sheet-backed (free)
+            <p className="mt-4 text-lg text-muted-foreground">
+              Every transaction, cost change, and payment timeline is tracked
+              with intent. The focus is not automation for the sake of it, but
+              control, auditability, and decision clarity—especially in early
+              and growing businesses.
+            </p>
+            <ul className="mt-8 space-y-4 text-muted-foreground">
+              <li className="flex items-start gap-3">
+                <Check className="h-5 w-5 mt-1 shrink-0 text-primary" />
+                <span>
+                  Project-wise financial tracking with payment timelines
                 </span>
-              </div>
-              <div className="flex items-center gap-3 rounded-full bg-white/5 px-4 py-2 border border-white/10">
-                <Check className="h-4 w-4 text-green-400" />
-                <span className="text-sm font-medium text-foreground">
-                  Founder control
+              </li>
+              <li className="flex items-start gap-3">
+                <Check className="h-5 w-5 mt-1 shrink-0 text-primary" />
+                <span>
+                  Clear separation between service value, domain cost, and
+                  margins
                 </span>
-              </div>
-              <div className="flex items-center gap-3 rounded-full bg-white/5 px-4 py-2 border border-white/10">
-                <Check className="h-4 w-4 text-green-400" />
-                <span className="text-sm font-medium text-foreground">
-                  Live timelines
-                </span>
-              </div>
-            </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check className="h-5 w-5 mt-1 shrink-0 text-primary" />
+                <span>Team expense logging with founder-level oversight</span>
+              </li>
+            </ul>
           </div>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
             className="relative group"
           >
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-[#6B5DF9] to-[#5CE7F4] rounded-2xl opacity-0 group-hover:opacity-75 transition duration-500 blur"></div>
-            <div className="relative rounded-2xl bg-white/5 p-8 border border-white/10 shadow-2xl backdrop-blur-md">
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-400 rounded-2xl opacity-0 group-hover:opacity-25 transition duration-500 blur-xl"></div>
+            <div className="relative rounded-2xl bg-white/5 p-6 border border-white/10 shadow-2xl backdrop-blur-lg">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">
+                <h3 className="text-base font-semibold text-foreground">
                   Project Summary
                 </h3>
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
-                  <span className="text-sm text-muted-foreground">On Track</span>
+                  <span className="text-xs text-muted-foreground">In Progress</span>
+                   <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse"></div>
                 </div>
               </div>
-              <div className="mt-6 space-y-4">
-                <div className="flex justify-between text-muted-foreground">
-                  <span className="text-sm">Client Name</span>
-                  <span className="text-sm">ABC Corp</span>
+               <LineChart className="w-full h-16 text-white/5 my-4" />
+              <div className="mt-4 space-y-3">
+                <div className="flex justify-between items-center text-sm text-muted-foreground">
+                  <span>Client Name</span>
+                  <span className="font-medium text-foreground">Innovate Inc.</span>
                 </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span className="text-sm">Service Cost</span>
-                  <span className="text-sm font-medium text-foreground">$5,000</span>
+                 <div className="w-full h-px bg-white/10"></div>
+                <div className="flex justify-between items-center text-sm text-muted-foreground">
+                  <span>Service Cost</span>
+                  <span className="font-medium text-foreground">$8,000</span>
                 </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span className="text-sm">Domain Charged</span>
-                  <span className="text-sm font-medium text-foreground">$50</span>
+                 <div className="w-full h-px bg-white/10"></div>
+                <div className="flex justify-between items-center text-sm text-muted-foreground">
+                  <span>Domain Charged</span>
+                  <span className="font-medium text-foreground">$75</span>
+                </div>
+                 <div className="w-full h-px bg-white/10"></div>
+                 <div className="flex justify-between items-center text-sm text-muted-foreground">
+                  <span>Extra Features</span>
+                  <span className="font-medium text-foreground">$1,200</span>
                 </div>
               </div>
-              <div className="mt-6">
-                <div className="flex justify-between text-sm font-medium text-muted-foreground mb-1">
-                  <span>Progress</span>
-                  <span>75%</span>
-                </div>
-                <div className="w-full bg-white/5 rounded-full h-1.5">
-                  <div className="bg-green-400 h-1.5 rounded-full" style={{width: "75%"}}></div>
-                </div>
-              </div>
-               <LineChart className="absolute bottom-4 right-4 w-16 h-16 text-white/5" />
             </div>
           </motion.div>
         </div>
