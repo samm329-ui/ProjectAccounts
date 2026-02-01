@@ -68,8 +68,8 @@ export default function PhaseDetailPage() {
           layoutId={phase.phase === 0 ? undefined : `phase-card-${phase.phase}`}
           className="rounded-2xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-md p-6 sm:p-8"
         >
-          <h1 className="text-3xl sm:text-4xl font-bold mb-8 text-center capitalize">
-            {phase.title}
+          <h1 className="text-3xl sm:text-4xl font-bold mb-8 text-center">
+            {`Phase ${phase.phase}`}
           </h1>
           
           {phase.projects && phase.projects.length > 0 ? (
