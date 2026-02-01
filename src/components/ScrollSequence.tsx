@@ -29,7 +29,7 @@ type TextOverlay = {
 
 const NARRATIVE_BEATS: TextOverlay[] = [
     {
-      start: 0.05,
+      start: 0,
       end: 0.25,
       position: "left",
       title: "Transparent Financial Records",
@@ -69,11 +69,8 @@ const lerp = (start: number, end: number, amt: number): number => {
 };
 
 const Loader = ({ progress }: { progress: number }) => (
-    <div className="sticky top-0 z-20 flex flex-col items-center justify-end pb-32 bg-[#050505]/90 backdrop-blur-sm text-white/80 h-screen">
-      <p className="font-mono text-sm tracking-wider mb-2">Loading cinematic experience...</p>
-      <div className="w-64 h-1 bg-white/20 rounded-full overflow-hidden">
-          <div className="h-1 bg-white rounded-full transition-all duration-300" style={{width: `${progress}%`}}></div>
-      </div>
+    <div className="fixed bottom-0 left-0 w-full h-1 bg-white/20 z-30">
+        <div className="h-1 bg-white transition-all duration-300" style={{width: `${progress}%`}}></div>
     </div>
   );
 
@@ -163,7 +160,14 @@ export default function ScrollSequence() {
       canvas.height = rect.height;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const hRatio = canvas.width / img.width;
+      const vRatio = canvas.height / img.height;
+      const ratio = Math.max(hRatio, vRatio);
+      const centerShift_x = (canvas.width - img.width * ratio) / 2;
+      const centerShift_y = (canvas.height - img.height * ratio) / 2;
+      
+      ctx.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
     },
     []
   );
@@ -215,7 +219,7 @@ export default function ScrollSequence() {
     <div ref={scrollRef} style={{ height: SCROLL_HEIGHT }} className="relative">
       <div className="sticky top-0 h-screen w-full overflow-hidden">
         {loading && <Loader progress={(framesLoaded / TOTAL_FRAMES) * 100} />}
-        <canvas ref={canvasRef} className={cn("h-full w-full object-cover", loading && "opacity-0")} />
+        <canvas ref={canvasRef} className={cn("h-full w-full", loading && "opacity-0")} />
         {!loading && NARRATIVE_BEATS.map((beat, index) => (
           <TextOverlay key={index} beat={beat} scrollYProgress={scrollYProgress} />
         ))}
