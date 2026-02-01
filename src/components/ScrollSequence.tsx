@@ -16,7 +16,7 @@ import React, {
 } from "react";
 
 // --- Configuration ---
-const TOTAL_FRAMES = 150; // Reduced for faster loading
+const TOTAL_FRAMES = 453;
 const SCROLL_HEIGHT = `${TOTAL_FRAMES * 2}vh`;
 
 type TextOverlay = {
@@ -59,8 +59,7 @@ const NARRATIVE_BEATS: TextOverlay[] = [
   ];
 
 const getFrameSrc = (index: number): string => {
-  // We'll skip frames to make the animation work with fewer images
-  const frameIndex = 1000 + Math.floor(index * (453 / TOTAL_FRAMES));
+  const frameIndex = 1000 + index;
   return `https://olcukmvtctbvutjcrmph.supabase.co/storage/v1/object/public/assest/hero%20animation/accounts%20png/Sequence%2001_${frameIndex}.png`;
 };
 
@@ -69,10 +68,19 @@ const lerp = (start: number, end: number, amt: number): number => {
 };
 
 const Loader = ({ progress }: { progress: number }) => (
-    <div className="fixed bottom-0 left-0 w-full h-1 bg-white/20 z-30">
-        <div className="h-1 bg-white transition-all duration-300" style={{width: `${progress}%`}}></div>
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#07070B] z-50">
+        <p className="text-2xl font-semibold text-white/80 mb-4">Loading Experience</p>
+        <div className="w-64 bg-white/10 h-2 rounded-full overflow-hidden">
+            <motion.div
+                className="h-2 bg-white rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.3 }}
+            />
+        </div>
+        <p className="text-sm text-white/50 mt-2">{Math.round(progress)}%</p>
     </div>
-  );
+);
 
 const TextOverlay = ({ beat, scrollYProgress }: { beat: TextOverlay, scrollYProgress: MotionValue<number> }) => {
   const opacity = useTransform(
