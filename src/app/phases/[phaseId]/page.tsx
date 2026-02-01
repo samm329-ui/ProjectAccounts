@@ -6,6 +6,8 @@ import { phases, type Phase } from '@/lib/phases';
 import Link from 'next/link';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { ProjectControlPanelModal } from '@/components/modals/ProjectControlPanelModal';
 
 export default function PhaseDetailPage() {
   const params = useParams();
@@ -14,6 +16,7 @@ export default function PhaseDetailPage() {
   const phase: Phase | undefined = phases.find(
     (p) => p.phase.toString() === phaseId
   );
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (!phase) {
     return (
@@ -23,7 +26,7 @@ export default function PhaseDetailPage() {
     );
   }
 
-  if (phase.status === 'Upcoming') {
+  if (phase.status === 'Upcoming' && phase.phase !== 0) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -33,7 +36,7 @@ export default function PhaseDetailPage() {
         className="min-h-screen bg-[#07070B] custom-bg text-foreground p-4 sm:p-8"
       >
         <div className="mx-auto max-w-4xl">
-          <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
+           <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
             <ArrowLeft size={16} />
             Back
           </button>
@@ -52,6 +55,7 @@ export default function PhaseDetailPage() {
   }
 
   return (
+    <>
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -68,13 +72,30 @@ export default function PhaseDetailPage() {
           layoutId={phase.phase === 0 ? undefined : `phase-card-${phase.phase}`}
           className="rounded-2xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-md p-6 sm:p-8"
         >
-          <h1 className="text-3xl sm:text-4xl font-bold mb-8 text-center">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-8 text-center capitalize">
             {`Phase ${phase.phase}`}
           </h1>
           
           {phase.projects && phase.projects.length > 0 ? (
             <div className="space-y-4">
               {phase.projects.map((project) => {
+                 if (project === 'project website freelancing') {
+                  return (
+                    <div
+                      key={project}
+                      className="flex items-center justify-between rounded-lg bg-white/5 p-4 border border-white/10 transition-all hover:border-white/20 hover:bg-white/10"
+                    >
+                      <p className="font-medium text-foreground capitalize">
+                        {project.replace(/[-_]/g, ' ')}
+                      </p>
+                      <Button variant="outline" size="sm" onClick={() => setIsModalOpen(true)}>
+                        Open
+                        <ExternalLink size={14} className="ml-2" />
+                      </Button>
+                    </div>
+                  );
+                }
+
                 const isComingSoon =
                   project === 'project dr drift' ||
                   project === 'project alklyne';
@@ -106,5 +127,7 @@ export default function PhaseDetailPage() {
         </motion.div>
       </div>
     </motion.div>
+    <ProjectControlPanelModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+    </>
   );
 }

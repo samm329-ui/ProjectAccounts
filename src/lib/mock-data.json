@@ -1,0 +1,162 @@
+{
+  "summary": {
+    "projectId": "website-freelance",
+    "totalProjects": 3,
+    "totalRevenue": 125000,
+    "totalReceived": 85000,
+    "totalPending": 40000,
+    "cashVsOnline": {
+      "cash": 32000,
+      "online": 53000
+    }
+  },
+  "clients": [
+    {
+      "clientId": "client_1",
+      "clientName": "Innovate Inc.",
+      "contact": "contact@innovate.com",
+      "businessType": "Tech Startup",
+      "startDate": "2023-01-15",
+      "assignedMember": "member_1",
+      "status": "Active"
+    },
+    {
+      "clientId": "client_2",
+      "clientName": "Healthful Foods",
+      "contact": "info@healthful.com",
+      "businessType": "E-commerce",
+      "startDate": "2023-02-20",
+      "assignedMember": "member_2",
+      "status": "Active"
+    },
+    {
+      "clientId": "client_3",
+      "clientName": "Artisan Crafts",
+      "contact": "support@artisan.io",
+      "businessType": "Marketplace",
+      "startDate": "2023-03-10",
+      "assignedMember": "member_1",
+      "status": "Completed"
+    }
+  ],
+  "payments": [
+    {
+      "paymentId": "pay_1",
+      "projectId": "website-freelance",
+      "clientId": "client_1",
+      "date": "2023-01-20",
+      "amount": 25000,
+      "type": "Credit",
+      "mode": "Online",
+      "recordedBy": "admin"
+    },
+    {
+      "paymentId": "pay_2",
+      "projectId": "website-freelance",
+      "clientId": "client_2",
+      "date": "2023-02-25",
+      "amount": 20000,
+      "type": "Credit",
+      "mode": "Cash",
+      "recordedBy": "admin"
+    },
+    {
+      "paymentId": "pay_3",
+      "projectId": "website-freelance",
+      "clientId": "client_1",
+      "date": "2023-03-15",
+      "amount": 40000,
+      "type": "Credit",
+      "mode": "Online",
+      "recordedBy": "admin"
+    },
+     {
+      "paymentId": "pay_4",
+      "projectId": "website-freelance",
+      "clientId": "client_3",
+      "date": "2023-03-20",
+      "amount": 12000,
+      "type": "Credit",
+      "mode": "Cash",
+      "recordedBy": "admin"
+    },
+     {
+      "paymentId": "pay_5",
+      "projectId": "website-freelance",
+      "clientId": "client_2",
+      "date": "2023-04-05",
+      "amount": 28000,
+      "type": "Credit",
+      "mode": "Online",
+      "recordedBy": "admin"
+    }
+  ],
+  "teamLedger": [
+    {
+        "entryId": "ledger_1",
+        "memberId": "member_1",
+        "date": "2023-01-18",
+        "amount": 5000,
+        "type": "given",
+        "reason": "Initial advance for Innovate Inc.",
+        "by": "admin"
+    },
+    {
+        "entryId": "ledger_2",
+        "memberId": "member_1",
+        "date": "2023-01-22",
+        "amount": 1200,
+        "type": "spent",
+        "reason": "Software subscription",
+        "by": "member_1"
+    },
+    {
+        "entryId": "ledger_3",
+        "memberId": "member_2",
+        "date": "2023-02-22",
+        "amount": 3000,
+        "type": "given",
+        "reason": "Advance for Healthful Foods",
+        "by": "admin"
+    },
+    {
+        "entryId": "ledger_4",
+        "memberId": "member_1",
+        "date": "2023-03-12",
+        "amount": 750,
+        "type": "spent",
+        "reason": "Domain renewal for Artisan Crafts",
+        "by": "member_1"
+    }
+  ],
+  "logs": [
+      {
+          "logId": "log_1",
+          "time": "10:32 AM",
+          "role": "Admin",
+          "action": "ADD_PAYMENT",
+          "details": "Added ₹25,000 for Innovate Inc."
+      },
+      {
+          "logId": "log_2",
+          "time": "11:15 AM",
+          "role": "Team",
+          "action": "ADD_EXPENSE",
+          "details": "Spent ₹1,200 on software."
+      },
+       {
+          "logId": "log_3",
+          "time": "01:45 PM",
+          "role": "Admin",
+          "action": "CREATE_CLIENT",
+          "details": "Added new client Healthful Foods"
+      },
+       {
+          "logId": "log_4",
+          "time": "03:05 PM",
+          "role": "Admin",
+          "action": "UPDATE_COST",
+          "details": "Updated costs for Innovate Inc."
+      }
+  ]
+}
