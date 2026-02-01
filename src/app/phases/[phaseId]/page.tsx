@@ -36,7 +36,7 @@ export default function PhaseDetailPage() {
           Back to Home
         </Link>
         <motion.div
-          layoutId={`phase-card-${phase.phase}`}
+          layoutId={phase.phase === 0 ? undefined : `phase-card-${phase.phase}`}
           className="rounded-2xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-md p-6 sm:p-8"
         >
           <h1 className="text-3xl sm:text-4xl font-bold capitalize mb-8 text-center">{phase.title}</h1>

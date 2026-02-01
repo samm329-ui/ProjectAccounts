@@ -26,7 +26,7 @@ export function UpcomingProjects() {
           {phases.map((phase: Phase, index) => (
             <Link href={`/phases/${phase.phase}`} key={phase.phase}>
               <motion.div
-                layoutId={`phase-card-${phase.phase}`}
+                layoutId={phase.phase === 0 ? undefined : `phase-card-${phase.phase}`}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.3 }}
