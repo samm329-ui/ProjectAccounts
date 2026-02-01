@@ -4,7 +4,8 @@ import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { phases, type Phase } from '@/lib/phases';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function PhaseDetailPage() {
   const params = useParams();
@@ -29,7 +30,7 @@ export default function PhaseDetailPage() {
       transition={{ duration: 0.5 }}
       className="min-h-screen bg-[#07070B] custom-bg text-foreground p-4 sm:p-8"
     >
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-4xl">
         <Link href="/#upcoming-projects" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft size={16} />
           Back to Home
@@ -38,55 +39,23 @@ export default function PhaseDetailPage() {
           layoutId={`phase-card-${phase.phase}`}
           className="rounded-2xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-md p-6 sm:p-8"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <span className="rounded-full bg-white/10 px-4 py-2 text-lg font-medium text-foreground self-start">
-              Phase {phase.phase}
-            </span>
-            <h1 className="text-3xl sm:text-4xl font-bold">{phase.title}</h1>
-          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold capitalize mb-8 text-center">{phase.title}</h1>
           
-          {phase.status && (
-            <div className="mt-4">
-              <span
-                className={`rounded-full px-3 py-1 text-sm font-medium ${
-                  phase.status === "On going"
-                    ? "bg-green-500/10 text-green-400"
-                    : "bg-primary/10 text-primary"
-                }`}
-              >
-                {phase.status}
-              </span>
-            </div>
-          )}
-
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                  <h2 className="text-2xl font-semibold mb-4 text-foreground/90">Goals</h2>
-                  <ul className="space-y-2 text-muted-foreground">
-                      {phase.goals.map((goal) => (
-                          <li key={goal} className="flex items-start gap-3">
-                              <span className="mt-2 h-2 w-2 rounded-full bg-primary/50 shrink-0"></span>
-                              <span>{goal}</span>
-                          </li>
-                      ))}
-                  </ul>
-              </div>
-              {phase.projects && phase.projects.length > 0 && (
-                  <div>
-                      <h2 className="text-2xl font-semibold mb-4 text-foreground/90">Projects</h2>
-                      <div className="space-y-3">
-                          {phase.projects.map((project) => (
-                              <div key={project} className="rounded-lg bg-white/5 p-4 border border-white/10">
-                                  <p className="font-medium text-foreground">{project}</p>
-                              </div>
-                          ))}
+          {phase.projects && phase.projects.length > 0 ? (
+              <div className="space-y-4">
+                  {phase.projects.map((project) => (
+                      <div key={project} className="flex items-center justify-between rounded-lg bg-white/5 p-4 border border-white/10 transition-all hover:border-white/20 hover:bg-white/10">
+                          <p className="font-medium text-foreground capitalize">{project.replace(/[-_]/g, ' ')}</p>
+                          <Button variant="outline" size="sm">
+                            Open
+                            <ExternalLink size={14} className="ml-2" />
+                          </Button>
                       </div>
-                  </div>
-              )}
-          </div>
-          <div className="mt-8 pt-6 border-t border-white/10 text-sm text-muted-foreground">
-              <p>ETA: {phase.eta}</p>
-          </div>
+                  ))}
+              </div>
+          ) : (
+            <p className="text-muted-foreground text-center">No projects in this phase yet.</p>
+          )}
         </motion.div>
       </div>
     </motion.div>
