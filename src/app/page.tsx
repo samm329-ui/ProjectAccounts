@@ -1,15 +1,20 @@
 import ScrollSequence from "@/components/ScrollSequence";
+import { About } from "@/components/about";
+import { Motto } from "@/components/motto";
+import { UpcomingProjects } from "@/components/upcoming-projects";
 
 export default function Home() {
   return (
-    <main>
+    <main className="bg-[#07070B]">
       <ScrollSequence />
-      <div className="h-screen flex items-center justify-center bg-[#050505]">
-        <div className="text-center">
-          <h2 className="text-4xl font-bold text-white/60">Content After Hero</h2>
-          <p className="mt-4 text-white/40">The scroll animation is complete.</p>
+      <div className="container mx-auto px-6">
+        <div className="space-y-16 md:space-y-24 lg:space-y-32">
+          <About />
+          <Motto />
+          <UpcomingProjects />
         </div>
       </div>
+      <div className="h-24" />
     </main>
   );
 }
