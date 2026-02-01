@@ -1,6 +1,6 @@
 'use client'
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { phases, type Phase } from '@/lib/phases';
 import Link from 'next/link';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 
 export default function PhaseDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const phaseId = params.phaseId;
   const phase: Phase | undefined = phases.find(
     (p) => p.phase.toString() === phaseId
@@ -32,10 +33,10 @@ export default function PhaseDetailPage() {
         className="min-h-screen bg-[#07070B] custom-bg text-foreground p-4 sm:p-8"
       >
         <div className="mx-auto max-w-4xl">
-          <Link href="/#upcoming-projects" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
+          <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
             <ArrowLeft size={16} />
-            Back to Home
-          </Link>
+            Back
+          </button>
           <motion.div
             layoutId={`phase-card-${phase.phase}`}
             className="rounded-2xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-md p-6 sm:p-8 flex items-center justify-center min-h-[300px]"
@@ -59,10 +60,10 @@ export default function PhaseDetailPage() {
       className="min-h-screen bg-[#07070B] custom-bg text-foreground p-4 sm:p-8"
     >
       <div className="mx-auto max-w-4xl">
-        <Link href="/#upcoming-projects" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
+        <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft size={16} />
-          Back to Home
-        </Link>
+          Back
+        </button>
         <motion.div
           layoutId={phase.phase === 0 ? undefined : `phase-card-${phase.phase}`}
           className="rounded-2xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-md p-6 sm:p-8"
