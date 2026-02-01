@@ -59,8 +59,9 @@ const NARRATIVE_BEATS: TextOverlay[] = [
 ];
 
 const getFrameSrc = (index: number): string => {
-  return `https://picsum.photos/seed/csh-${index}/1920/1080`;
-}
+  const frameIndex = 1000 + index;
+  return `https://olcukmvtctbvutjcrmph.supabase.co/storage/v1/object/public/assest/hero%20animation/accounts%20png/Sequence%2001_${frameIndex}.png`;
+};
 
 const lerp = (start: number, end: number, amt: number): number => {
   return (1 - amt) * start + amt * end;
