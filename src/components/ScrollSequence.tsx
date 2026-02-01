@@ -17,7 +17,12 @@ import React, {
 
 // --- Configuration ---
 const TOTAL_FRAMES = 453;
+const FRAME_STEP = 5; // Load every 5th frame to improve performance
+const FRAMES_TO_LOAD = Math.floor(TOTAL_FRAMES / FRAME_STEP);
 const SCROLL_HEIGHT = `${TOTAL_FRAMES * 2}vh`;
+
+// In-memory cache for loaded images
+let imageCache: HTMLImageElement[] = [];
 
 type TextOverlay = {
   start: number;
@@ -59,8 +64,10 @@ const NARRATIVE_BEATS: TextOverlay[] = [
   ];
 
 const getFrameSrc = (index: number): string => {
-  const frameIndex = 1000 + index;
-  return `https://olcukmvtctbvutjcrmph.supabase.co/storage/v1/object/public/assest/hero%20animation/accounts%20png/Sequence%2001_${frameIndex}.png`;
+  // index is from 0 to FRAMES_TO_LOAD - 1
+  const frameIndexInSequence = index * FRAME_STEP;
+  const frameId = 1000 + frameIndexInSequence;
+  return `https://olcukmvtctbvutjcrmph.supabase.co/storage/v1/object/public/assest/hero%20animation/accounts%20png/Sequence%2001_${frameId}.png`;
 };
 
 const lerp = (start: number, end: number, amt: number): number => {
@@ -75,7 +82,7 @@ const Loader = ({ progress }: { progress: number }) => (
                 className="h-2 bg-white rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.3, ease: "linear" }}
             />
         </div>
         <p className="text-sm text-white/50 mt-2">{Math.round(progress)}%</p>
@@ -122,8 +129,8 @@ export default function ScrollSequence() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const [loading, setLoading] = useState(true);
-  const [images, setImages] = useState<HTMLImageElement[]>([]);
+  const [loading, setLoading] = useState(imageCache.length === 0);
+  const [images, setImages] = useState<HTMLImageElement[]>(imageCache);
   const [framesLoaded, setFramesLoaded] = useState(0);
 
   const { scrollYProgress } = useScroll({
@@ -134,9 +141,16 @@ export default function ScrollSequence() {
   const frameAnimation = useRef({ current: 0, target: 0 });
 
   useEffect(() => {
+    // If images are already in the cache, don't load them again
+    if (imageCache.length > 0) {
+      setImages(imageCache);
+      setLoading(false);
+      return;
+    }
+
     const loadImages = async () => {
       const imagePromises: Promise<HTMLImageElement>[] = [];
-      for (let i = 0; i < TOTAL_FRAMES; i++) {
+      for (let i = 0; i < FRAMES_TO_LOAD; i++) {
         const img = new Image();
         img.crossOrigin = "anonymous";
         const promise = new Promise<HTMLImageElement>((resolve, reject) => {
@@ -151,6 +165,7 @@ export default function ScrollSequence() {
       }
       try {
         const loadedImages = await Promise.all(imagePromises);
+        imageCache = loadedImages; // Store in cache
         setImages(loadedImages);
         setLoading(false);
       } catch (error) {
@@ -163,7 +178,7 @@ export default function ScrollSequence() {
   const drawImage = useCallback(
     (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, img: HTMLImageElement) => {
       const rect = canvas.parentElement?.getBoundingClientRect();
-      if(!rect) return;
+      if(!rect || rect.width === 0 || rect.height === 0) return;
       
       canvas.width = rect.width;
       canvas.height = rect.height;
@@ -182,11 +197,14 @@ export default function ScrollSequence() {
   );
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || images.length === 0) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    
+    // Draw the first frame immediately
+    drawImage(canvas, ctx, images[0]);
     
     let animationFrameId: number;
 
@@ -221,13 +239,13 @@ export default function ScrollSequence() {
   }, [loading, images, drawImage]);
 
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    frameAnimation.current.target = latest * (TOTAL_FRAMES - 1);
+    frameAnimation.current.target = latest * (FRAMES_TO_LOAD - 1);
   });
   
   return (
     <div ref={scrollRef} style={{ height: SCROLL_HEIGHT }} className="relative">
       <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {loading && <Loader progress={(framesLoaded / TOTAL_FRAMES) * 100} />}
+        {loading && <Loader progress={(framesLoaded / FRAMES_TO_LOAD) * 100} />}
         <canvas ref={canvasRef} className={cn("h-full w-full", loading && "opacity-0")} />
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black to-transparent pointer-events-none" />
         {!loading && NARRATIVE_BEATS.map((beat, index) => (
