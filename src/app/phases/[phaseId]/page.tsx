@@ -70,17 +70,33 @@ export default function PhaseDetailPage() {
           <h1 className="text-3xl sm:text-4xl font-bold capitalize mb-8 text-center">{phase.title}</h1>
           
           {phase.projects && phase.projects.length > 0 ? (
-              <div className="space-y-4">
-                  {phase.projects.map((project) => (
-                      <div key={project} className="flex items-center justify-between rounded-lg bg-white/5 p-4 border border-white/10 transition-all hover:border-white/20 hover:bg-white/10">
-                          <p className="font-medium text-foreground capitalize">{project.replace(/[-_]/g, ' ')}</p>
-                          <Button variant="outline" size="sm">
-                            Open
-                            <ExternalLink size={14} className="ml-2" />
-                          </Button>
-                      </div>
-                  ))}
-              </div>
+            <div className="space-y-4">
+              {phase.projects.map((project) => {
+                const isComingSoon =
+                  project === 'project dr drift' ||
+                  project === 'project alklyne';
+                const projectUrl = isComingSoon
+                  ? '/coming-soon'
+                  : `/projects/${project.replace(/\s+/g, '-')}`;
+
+                return (
+                  <div
+                    key={project}
+                    className="flex items-center justify-between rounded-lg bg-white/5 p-4 border border-white/10 transition-all hover:border-white/20 hover:bg-white/10"
+                  >
+                    <p className="font-medium text-foreground capitalize">
+                      {project.replace(/[-_]/g, ' ')}
+                    </p>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={projectUrl}>
+                        Open
+                        <ExternalLink size={14} className="ml-2" />
+                      </Link>
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <p className="text-muted-foreground text-center">No projects in this phase yet.</p>
           )}
