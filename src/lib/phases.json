@@ -3,6 +3,7 @@
     "phase": 0,
     "title": "MVP foundation",
     "goals": ["Google Sheets backend", "Project list", "Payment timeline"],
+    "projects": ["project website freelancing", "project dr drift", "project alklyne"],
     "eta": "Q2 2026",
     "progress": 95,
     "status": "On going"

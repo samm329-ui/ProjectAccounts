@@ -4,6 +4,7 @@ export type Phase = {
   phase: number;
   title: string;
   goals: string[];
+  projects?: string[];
   eta: string;
   progress: number;
   status: "On going" | "Upcoming";
