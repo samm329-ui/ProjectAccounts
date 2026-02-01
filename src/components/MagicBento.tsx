@@ -650,23 +650,21 @@ const MagicBento: React.FC<BentoProps> = ({
             } as React.CSSProperties;
 
             const cardInnerContent = (
-                <>
-                  <div className="card__header flex justify-between items-center gap-3 relative text-white w-full">
-                    <span className="card__label text-base">{card.label}</span>
-                     {card.phase?.status && (
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-medium ${
-                            card.phase.status === "On going"
-                              ? "bg-green-500/10 text-green-400"
-                              : "bg-primary/10 text-primary"
-                          }`}
-                        >
-                          {card.phase.status}
-                        </span>
-                      )}
-                  </div>
-                </>
-              );
+              <div className="flex flex-col items-center text-center">
+                <span className="card__label text-xl font-bold">{card.label}</span>
+                {card.phase?.status && (
+                  <span
+                    className={`mt-2 rounded-full px-3 py-1 text-xs font-medium ${
+                      card.phase.status === 'On going'
+                        ? 'bg-green-500/10 text-green-400'
+                        : 'bg-primary/10 text-primary'
+                    }`}
+                  >
+                    {card.phase.status}
+                  </span>
+                )}
+              </div>
+            );
 
             if (enableStars) {
               return (
