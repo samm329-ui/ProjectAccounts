@@ -1,10 +1,9 @@
 'use client';
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 export default function ComingSoonPage() {
-    const router = useRouter();
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -14,10 +13,10 @@ export default function ComingSoonPage() {
             className="min-h-screen bg-[#07070B] custom-bg text-foreground p-4 sm:p-8"
         >
             <div className="mx-auto max-w-4xl">
-                 <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
+                 <Link href="/#upcoming-projects" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
                     <ArrowLeft size={16} />
                     Back
-                </button>
+                </Link>
                 <div className="rounded-2xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-md p-6 sm:p-8 flex items-center justify-center min-h-[300px]">
                     <div className="text-center">
                         <h1 className="text-3xl sm:text-4xl font-bold capitalize mb-4">Coming Soon</h1>
