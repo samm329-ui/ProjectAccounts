@@ -77,8 +77,9 @@ const Loader = ({ progress }: { progress: number }) => (
 const TextOverlay = ({ beat, scrollYProgress }: { beat: TextOverlay, scrollYProgress: MotionValue<number> }) => {
   const opacity = useTransform(
     scrollYProgress,
-    [beat.start - 0.05, beat.start, beat.end, beat.end + 0.05],
-    [0, 1, 1, 0]
+    // The first item should be visible from the start
+    beat.start === 0 ? [beat.start, beat.end, beat.end + 0.05] : [beat.start - 0.05, beat.start, beat.end, beat.end + 0.05],
+    beat.start === 0 ? [1, 1, 0] : [0, 1, 1, 0]
   );
 
   const positionClasses = {
@@ -220,6 +221,7 @@ export default function ScrollSequence() {
       <div className="sticky top-0 h-screen w-full overflow-hidden">
         {loading && <Loader progress={(framesLoaded / TOTAL_FRAMES) * 100} />}
         <canvas ref={canvasRef} className={cn("h-full w-full", loading && "opacity-0")} />
+        <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black to-transparent pointer-events-none" />
         {!loading && NARRATIVE_BEATS.map((beat, index) => (
           <TextOverlay key={index} beat={beat} scrollYProgress={scrollYProgress} />
         ))}
