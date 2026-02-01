@@ -43,7 +43,7 @@ export default function PhaseDetailPage() {
           >
             <div className="text-center">
               <h1 className="text-3xl sm:text-4xl font-bold capitalize mb-4">Coming Soon</h1>
-              <p className="text-muted-foreground">This section is under development. Check back later!</p>
+              <p className="text-muted-foreground">This project is under development. Check back later!</p>
             </div>
           </motion.div>
         </div>
@@ -68,7 +68,9 @@ export default function PhaseDetailPage() {
           layoutId={phase.phase === 0 ? undefined : `phase-card-${phase.phase}`}
           className="rounded-2xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-md p-6 sm:p-8"
         >
-          <h1 className="text-3xl sm:text-4xl font-bold capitalize mb-8 text-center">{phase.title}</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-8 text-center">
+            {`Phase ${phase.phase}: ${phase.title}`}
+          </h1>
           
           {phase.projects && phase.projects.length > 0 ? (
             <div className="space-y-4">
