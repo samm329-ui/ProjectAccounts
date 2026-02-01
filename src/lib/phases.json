@@ -4,12 +4,13 @@
     "title": "MVP foundation",
     "goals": ["Google Sheets backend", "Project list", "Payment timeline"],
     "eta": "Q2 2026",
-    "progress": 95
+    "progress": 95,
+    "status": "On going"
   },
   {
     "phase": 1,
     "title": "Team workflows",
-    "goals": ["Member ledger", "Passcode access", "Audit logs"],
+    "goals": ["Member ledger", "Passcode access", "audit logs"],
     "eta": "Q3 2026",
     "progress": 60,
     "status": "Upcoming"
@@ -17,7 +18,7 @@
   {
     "phase": 2,
     "title": "Client portal",
-    "goals": ["View-only links", "Client receipts", "Export CSV"],
+    "goals": ["View-only links", "client receipts", "export CSV"],
     "eta": "Q4 2026",
     "progress": 40,
     "status": "Upcoming"
