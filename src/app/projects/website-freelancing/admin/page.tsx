@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Plus, ArrowLeft, Bell, Settings, ChevronDown, Lock, CheckCircle2, ShieldCheck, ArrowRight, Edit, Edit2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { getClients, getPayments, getLogs, getTeamLedger, addClient } from '@/lib/api';
+import { getClients, getPayments, getLogs, getTeamLedger, addClient, updateClientCosts, updateClient, addLog } from '@/lib/api';
 import { ClientPayments } from './components/ClientPayments';
 import { TeamMoney } from './components/TeamMoney';
 import Link from 'next/link';
@@ -17,6 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { updateClientStatus, deleteClient } from '@/lib/api';
+import { Trash2, AlertTriangle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 function formatTimeAgo(timestamp: string) {
     const now = new Date();
@@ -51,6 +54,20 @@ const AdminPanel = () => {
         domainCharged: '0',
     });
     const [isSubmittingClient, setIsSubmittingClient] = useState(false);
+
+    // Edit Client State
+    const [isEditClientOpen, setIsEditClientOpen] = useState(false);
+    const [editClientData, setEditClientData] = useState({
+        clientName: '',
+        contact: '',
+        businessType: ''
+    });
+
+    // Logs Dialog State
+    const [isLogsOpen, setIsLogsOpen] = useState(false);
+
+    // Delete State
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -90,8 +107,52 @@ const AdminPanel = () => {
 
     const handleCostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setCosts((prev: any) => ({ ...prev, [name]: Number(value) || 0 }));
-    }
+        setCosts((prev: any) => ({ ...prev, [name]: value }));
+    };
+
+    const handleCostBlur = async () => {
+        // Auto-save when user leaves a cost field
+        if (selectedClientId) {
+            await handleSaveCosts();
+        }
+    };
+
+    const handleSaveCosts = async () => {
+        if (!selectedClientId) return;
+
+        // Convert to numbers
+        const serviceCost = Number(costs.serviceCost) || 0;
+        const domainCharged = Number(costs.domainCharged) || 0;
+        const actualDomainCost = Number(costs.actualDomainCost) || 0;
+        const extraFeatures = Number(costs.extraFeatures) || 0;
+        const extraProductionCharges = Number(costs.extraProductionCharges) || 0;
+
+        // User formulas:
+        // Total Value = Service + Domain Charged + Extra Features + Extra Production
+        // Total Profit = Total Value + (Domain Charged - Actual Domain Cost)
+        const totalValue = serviceCost + domainCharged + extraFeatures + extraProductionCharges;
+        const profit = totalValue + (domainCharged - actualDomainCost);
+
+        const numericCosts = {
+            serviceCost,
+            domainCharged,
+            actualDomainCost,
+            extraFeatures,
+            extraProductionCharges
+        };
+
+        const result = await updateClientCosts(selectedClientId, numericCosts);
+        if (result.success) {
+            await addLog({
+                actor: 'Admin',
+                action: 'Updated Costs',
+                details: { client: selectedClient?.clientName, totalValue, profit }
+            });
+            await refreshData();
+        } else {
+            alert('Failed to update costs');
+        }
+    };
 
     const refreshData = async () => {
         // Reloads payments/ledger for child components
@@ -137,6 +198,74 @@ const AdminPanel = () => {
             console.error("Failed to create client", error);
         } finally {
             setIsSubmittingClient(false);
+        }
+    };
+
+    const handleOpenEditClient = () => {
+        if (selectedClient) {
+            setEditClientData({
+                clientName: selectedClient.clientName,
+                contact: selectedClient.contact,
+                businessType: selectedClient.businessType
+            });
+            setIsEditClientOpen(true);
+        }
+    };
+
+    const handleUpdateClient = async () => {
+        if (!selectedClientId) return;
+        setIsSubmittingClient(true);
+        try {
+            await updateClient(selectedClientId, editClientData);
+            await addLog({
+                actor: 'Admin',
+                action: 'Updated Client Details',
+                details: { client: editClientData.clientName }
+            });
+            setIsEditClientOpen(false);
+            loadData();
+        } catch (error) {
+            console.error("Failed to update client", error);
+        } finally {
+            setIsSubmittingClient(false);
+        }
+    };
+
+    const updateStatus = async (status: string) => {
+        if (!selectedClientId) return;
+        try {
+            const success = await updateClientStatus(selectedClientId, status);
+            if (success) {
+                await addLog({
+                    actor: 'Admin',
+                    action: 'Updated Client Status',
+                    details: { client: selectedClient?.clientName, status }
+                });
+                alert('Status updated successfully');
+                loadData();
+            }
+        } catch (error) {
+            console.error("Failed to update status", error);
+        }
+    };
+
+    const handleDeleteClient = async () => {
+        if (!selectedClientId) return;
+        try {
+            // Check 'hardDelete' from a state or default to false (Soft delete)
+            const result = await deleteClient(selectedClientId, false);
+            if (result.success) {
+                await addLog({
+                    actor: 'Admin',
+                    action: 'Deleted Client',
+                    details: { client: selectedClient?.clientName }
+                });
+                setIsDeleteOpen(false);
+                setSelectedClientId(null);
+                loadData();
+            }
+        } catch (error) {
+            console.error("Failed to delete client", error);
         }
     };
 
@@ -197,11 +326,12 @@ const AdminPanel = () => {
                                     className={`p-4 rounded-xl cursor-pointer transition-all border ${selectedClientId === client.clientId ? 'bg-white/[0.08] border-white/10 shadow-lg' : 'bg-transparent border-transparent hover:bg-white/[0.03]'}`}>
                                     <div className="flex justify-between items-start mb-1">
                                         <div className="flex items-center gap-2">
-                                            <span className={`w-2 h-2 rounded-full ${client.status === 'Active' ? 'bg-[#23D07A] shadow-[0_0_5px_#23D07A]' : 'bg-purple-400'}`}></span>
+                                            <span className={`w-2 h-2 rounded-full ${client.status === 'Active' ? 'bg-[#23D07A] shadow-[0_0_5px_#23D07A]' : (client.status === 'Delivered' ? 'bg-[#7A5BFF]' : 'bg-gray-400')}`}></span>
                                             <p className="font-semibold text-sm">{client.clientName}</p>
                                         </div>
                                         {client.status === 'Active' && <Badge className="bg-[#23D07A]/10 text-[#23D07A] border border-[#23D07A]/20 text-[10px] px-2 py-0 h-5">Active</Badge>}
-                                        {client.status === 'Completed' && <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5">Completed</Badge>}
+                                        {client.status === 'Delivered' && <Badge variant="secondary" className="bg-[#7A5BFF]/10 text-[#7A5BFF] border border-[#7A5BFF]/20 text-[10px] px-2 py-0 h-5">Delivered</Badge>}
+                                        {client.status === 'Inactive' && <Badge variant="outline" className="text-[10px] px-2 py-0 h-5">Inactive</Badge>}
                                     </div>
                                     <p className="text-xs text-muted-foreground pl-4">{client.contact}</p>
                                 </div>
@@ -296,13 +426,26 @@ const AdminPanel = () => {
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
                                         <h2 className="text-2xl font-bold tracking-tight">{selectedClient.clientName}</h2>
-                                        <CheckCircle2 size={18} className="text-[#23D07A]" fill="rgba(35, 208, 122, 0.1)" />
+                                        {selectedClient.status === 'Active' && <CheckCircle2 size={18} className="text-[#23D07A]" fill="rgba(35, 208, 122, 0.1)" />}
+                                        {selectedClient.status === 'Delivered' && <ShieldCheck size={18} className="text-[#7A5BFF]" />}
                                     </div>
                                     <p className="text-sm text-muted-foreground">{selectedClient.contact}</p>
+
+                                    {/* Status Toggles */}
+                                    <div className="flex gap-2 mt-3">
+                                        <Button variant="ghost" size="sm" onClick={() => updateStatus('Active')} className={`h-6 text-[10px] px-2 rounded-md border ${selectedClient.status === 'Active' ? 'bg-[#23D07A]/20 text-[#23D07A] border-[#23D07A]/30' : 'border-white/10 text-muted-foreground hover:bg-white/5'}`}>Active</Button>
+                                        <Button variant="ghost" size="sm" onClick={() => updateStatus('Inactive')} className={`h-6 text-[10px] px-2 rounded-md border ${selectedClient.status === 'Inactive' ? 'bg-white/20 text-white border-white/30' : 'border-white/10 text-muted-foreground hover:bg-white/5'}`}>Inactive</Button>
+                                        <Button variant="ghost" size="sm" onClick={() => updateStatus('Delivered')} className={`h-6 text-[10px] px-2 rounded-md border ${selectedClient.status === 'Delivered' ? 'bg-[#7A5BFF]/20 text-[#7A5BFF] border-[#7A5BFF]/30' : 'border-white/10 text-muted-foreground hover:bg-white/5'}`}>Delivered</Button>
+                                    </div>
                                 </div>
-                                <Button variant="outline" size="sm" className="rounded-full h-8 px-4 border-white/10 bg-white/5 hover:bg-white/10 text-xs">
-                                    <Edit className="w-3 h-3 mr-2" /> Client
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" size="sm" onClick={handleOpenEditClient} className="rounded-full h-8 px-4 border-white/10 bg-white/5 hover:bg-white/10 text-xs">
+                                        <Edit className="w-3 h-3 mr-2" /> Client
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={() => setIsDeleteOpen(true)} className="rounded-full h-8 w-8 hover:bg-red-500/10 text-muted-foreground hover:text-red-500">
+                                        <Trash2 size={14} />
+                                    </Button>
+                                </div>
                             </div>
 
                             <Tabs defaultValue="pricing" className="flex-grow flex flex-col">
@@ -324,40 +467,40 @@ const AdminPanel = () => {
                                                 <Label className="text-xs text-muted-foreground ml-1">Service Cost</Label>
                                                 <div className="relative">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
-                                                    <Input name="serviceCost" type="number" value={costs.serviceCost || 0} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
+                                                    <Input name="serviceCost" type="number" value={costs.serviceCost} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
                                                 <Label className="text-xs text-muted-foreground ml-1">Domain Charged</Label>
                                                 <div className="relative">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
-                                                    <Input name="domainCharged" type="number" value={costs.domainCharged || 0} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
+                                                    <Input name="domainCharged" type="number" value={costs.domainCharged} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
                                                 <Label className="text-xs text-muted-foreground ml-1">Actual Domain Cost</Label>
                                                 <div className="relative">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
-                                                    <Input name="actualDomainCost" type="number" value={costs.actualDomainCost || 0} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
+                                                    <Input name="actualDomainCost" type="number" value={costs.actualDomainCost} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
                                                 <Label className="text-xs text-muted-foreground ml-1">Extra Features</Label>
                                                 <div className="relative">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
-                                                    <Input name="extraFeatures" type="number" value={costs.extraFeatures || 0} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
+                                                    <Input name="extraFeatures" type="number" value={costs.extraFeatures} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
                                                 <Label className="text-xs text-muted-foreground ml-1">Extra Production Charges</Label>
                                                 <div className="relative">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
-                                                    <Input name="extraProductionCharges" type="number" value={costs.extraProductionCharges || 0} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
+                                                    <Input name="extraProductionCharges" type="number" value={costs.extraProductionCharges} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
                                                 </div>
                                             </div>
 
                                             <div className="flex gap-3 pt-4">
-                                                <Button className="flex-1 btn-primary text-sm">Save Changes</Button>
+                                                <Button onClick={handleSaveCosts} className="flex-1 btn-primary text-sm">Save Changes</Button>
                                                 <Button variant="outline" className="flex-1 bg-white/5 border-white/10 text-muted hover:text-white h-[44px] rounded-xl text-sm">Reset</Button>
                                             </div>
                                         </div>
@@ -382,7 +525,7 @@ const AdminPanel = () => {
                                                     <span className="font-bold text-[#23D07A] text-lg">₹{selectedClient.financials.profit.toLocaleString()}</span>
                                                 </div>
 
-                                                <Button variant="ghost" size="sm" className="w-full mt-2 text-xs text-muted-foreground hover:text-white flex items-center justify-center gap-1">
+                                                <Button variant="ghost" size="sm" onClick={handleOpenEditClient} className="w-full mt-2 text-xs text-muted-foreground hover:text-white flex items-center justify-center gap-1">
                                                     <Edit2 size={12} /> Edit Client info
                                                 </Button>
                                             </div>
@@ -433,7 +576,7 @@ const AdminPanel = () => {
                                 </li>
                             ))}
                         </ul>
-                        <Button variant="link" className="text-[#7A5BFF] hover:text-[#4FD1FF] p-0 h-auto mt-auto self-start text-xs flex items-center gap-1">
+                        <Button variant="link" onClick={() => setIsLogsOpen(true)} className="text-[#7A5BFF] hover:text-[#4FD1FF] p-0 h-auto mt-auto self-start text-xs flex items-center gap-1">
                             View All <ArrowRight size={12} />
                         </Button>
                     </div>
@@ -459,11 +602,87 @@ const AdminPanel = () => {
                                 </div>
                             </div>
                         </div>
-                        <Button variant="link" className="text-[#7A5BFF] hover:text-[#4FD1FF] p-0 h-auto mt-6 text-xs flex items-center gap-1">
+                        <Button variant="link" onClick={() => setIsLogsOpen(true)} className="text-[#7A5BFF] hover:text-[#4FD1FF] p-0 h-auto mt-6 text-xs flex items-center gap-1">
                             View All Logs <ArrowRight size={12} />
                         </Button>
                     </div>
                 </div>
+
+                {/* Edit Client Dialog */}
+                <Dialog open={isEditClientOpen} onOpenChange={setIsEditClientOpen}>
+                    <DialogContent className="bg-[#0B0710] border-white/10 text-foreground sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Edit Client</DialogTitle>
+                            <DialogDescription>Update client details.</DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-name" className="text-right">Name</Label>
+                                <Input id="edit-name" value={editClientData.clientName} onChange={e => setEditClientData({ ...editClientData, clientName: e.target.value })} className="col-span-3 bg-white/5 border-white/10" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-contact" className="text-right">Contact</Label>
+                                <Input id="edit-contact" value={editClientData.contact} onChange={e => setEditClientData({ ...editClientData, contact: e.target.value })} className="col-span-3 bg-white/5 border-white/10" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-type" className="text-right">Type</Label>
+                                <Input id="edit-type" value={editClientData.businessType} onChange={e => setEditClientData({ ...editClientData, businessType: e.target.value })} className="col-span-3 bg-white/5 border-white/10" />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsEditClientOpen(false)} className="border-white/10 hover:bg-white/5 hover:text-white">Cancel</Button>
+                            <Button onClick={handleUpdateClient} disabled={isSubmittingClient} className="btn-primary">
+                                {isSubmittingClient ? 'Updating...' : 'Save Changes'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Logs Dialog */}
+                <Dialog open={isLogsOpen} onOpenChange={setIsLogsOpen}>
+                    <DialogContent className="bg-[#0B0710] border-white/10 text-foreground sm:max-w-[600px] h-[80vh] flex flex-col">
+                        <DialogHeader>
+                            <DialogTitle>Activity Logs</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex-grow overflow-y-auto custom-scrollbar p-2">
+                            <ul className="space-y-4">
+                                {logs.map((log) => (
+                                    <li key={log.logId} className="flex gap-4 border-b border-white/5 pb-2">
+                                        <div className="mt-1.5 min-w-[8px]">
+                                            <div className="w-2 h-2 rounded-full bg-[#FFB86B]"></div>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-white mb-0.5">{log.action}</p>
+                                            <p className="text-xs text-muted-foreground mb-1">
+                                                {typeof log.details === 'string' ? log.details : JSON.stringify(log.details)}
+                                            </p>
+                                            <p className="text-[10px] text-muted-foreground/50">{log.actor} • {new Date(log.timestamp).toLocaleString()}</p>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Delete Confirmation Dialog */}
+                <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                    <DialogContent className="bg-[#0B0710] border-red-500/20 text-foreground sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-red-500"><AlertTriangle size={18} /> Delete Client</DialogTitle>
+                            <DialogDescription>
+                                Are you sure you want to delete <strong>{selectedClient?.clientName}</strong>?
+                                This will archive the client and they will no longer appear in the active list.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsDeleteOpen(false)} className="border-white/10 hover:bg-white/5 hover:text-white">Cancel</Button>
+                            <Button onClick={handleDeleteClient} className="bg-red-500 hover:bg-red-600 text-white border-none">
+                                Delete Client
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
             </div>
         </div>

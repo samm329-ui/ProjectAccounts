@@ -3,6 +3,7 @@
 import { GoogleSpreadsheet } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 import mockData from './mock-data.json';
+import { recalculateAll } from './recalc';
 
 // Config
 const SCOPES = [
@@ -49,7 +50,52 @@ export async function getSummary() {
         await new Promise(r => setTimeout(r, 500));
         return mockData.summary;
     }
-    return mockData.summary;
+
+    try {
+        const clientsSheet = doc.sheetsByTitle[SHEETS.CLIENTS];
+        const paymentsSheet = doc.sheetsByTitle[SHEETS.PAYMENTS];
+
+        const clientRows = await clientsSheet.getRows();
+        const paymentRows = await paymentsSheet.getRows();
+
+        const activeClients = clientRows.filter(r => r.get('status') !== 'Deleted');
+
+        // User formulas:
+        // Projected Revenue = All Projects Total Value
+        // Pending = Total Value - Total Paid (for each client)
+        // Total Revenue = All Projects Total Value - Pending Charges
+        // Cash = Client Payments in Cash only
+
+        const projectedRevenue = activeClients.reduce((acc, row) => acc + (Number(row.get('totalValue')) || 0), 0);
+
+        // Calculate total pending across all clients
+        const totalPending = activeClients.reduce((acc, row) => {
+            const totalValue = Number(row.get('totalValue')) || 0;
+            const paid = Number(row.get('paid')) || 0;
+            const pending = totalValue - paid;
+            return acc + pending;
+        }, 0);
+
+        const totalRevenue = projectedRevenue - totalPending;
+
+        // Cash only from payments
+        const cashPayments = paymentRows
+            .filter(p => p.get('type')?.toLowerCase() === 'cash')
+            .reduce((acc, p) => acc + (Number(p.get('amount')) || 0), 0);
+
+        const totalProfit = activeClients.reduce((acc, row) => acc + (Number(row.get('profit')) || 0), 0);
+
+        return {
+            totalRevenue,
+            projectedRevenue,
+            totalPending,
+            totalCash: cashPayments,
+            totalProfit
+        };
+    } catch (e) {
+        console.error("Get Summary Failed:", e);
+        return mockData.summary;
+    }
 }
 
 export async function getClients() {
@@ -61,7 +107,7 @@ export async function getClients() {
         if (!sheet) return [];
 
         const rows = await sheet.getRows();
-        return rows.map(row => ({
+        return rows.filter(r => r.get('status') !== 'Deleted').map(row => ({
             clientId: row.get('clientId'),
             clientName: row.get('clientName'),
             contact: row.get('contact'),
@@ -232,6 +278,172 @@ export async function addClient(client: any) {
         return { success: true };
     } catch (e) {
         console.error("Add Client Failed:", e);
+        return { success: false };
+    }
+}
+
+
+export async function updateClientCosts(clientId: string, costs: any) {
+    const doc = await getDoc();
+    if (!doc) {
+        console.log("Mock Update Costs:", clientId, costs);
+        return { success: true };
+    }
+
+    try {
+        const sheet = doc.sheetsByTitle[SHEETS.CLIENTS];
+        const rows = await sheet.getRows();
+        const row = rows.find(r => r.get('clientId') === clientId);
+
+        if (row) {
+            // User-provided formulas:
+            // Total Value = Service + DomainCharged + ExtraFeatures + ExtraProduction
+            // Total Profit = Total Value + (Domain Charged - Actual Domain Cost)
+
+            const serviceCost = costs.serviceCost || 0;
+            const domainCharged = costs.domainCharged || 0;
+            const actualDomainCost = costs.actualDomainCost || 0;
+            const extraFeatures = costs.extraFeatures || 0;
+            const extraProductionCharges = costs.extraProductionCharges || 0;
+
+            const totalValue = serviceCost + domainCharged + extraFeatures + extraProductionCharges;
+            const profit = totalValue + (domainCharged - actualDomainCost);
+
+            row.assign({
+                serviceCost,
+                domainCharged,
+                actualDomainCost,
+                extraFeatures,
+                extraProductionCharges,
+                totalValue,
+                profit
+            });
+            await sheet.saveUpdatedCells();
+            return { success: true };
+        }
+        return { success: false, message: 'Client not found' };
+    } catch (e) {
+        console.error("Update Costs Failed:", e);
+        return { success: false };
+    }
+}
+
+export async function deleteClient(clientId: string, hardDelete: boolean) {
+    const doc = await getDoc();
+    if (!doc) {
+        console.log("Mock Delete Client:", clientId, hardDelete);
+        return { success: true };
+    }
+
+    try {
+        const sheet = doc.sheetsByTitle[SHEETS.CLIENTS];
+        const rows = await sheet.getRows();
+        const row = rows.find(r => r.get('clientId') === clientId);
+
+        if (row) {
+            if (hardDelete) {
+                await row.delete();
+            } else {
+                row.assign({ status: 'Deleted' });
+                await row.save();
+            }
+            return { success: true };
+        }
+        return { success: false, message: 'Client not found' };
+    } catch (e) {
+        console.error("Delete Client Failed:", e);
+        return { success: false };
+    }
+}
+
+export async function approveRequest(entryId: string) {
+    const doc = await getDoc();
+    if (!doc) {
+        console.log("Mock Approve Request:", entryId);
+        return { success: true };
+    }
+
+    try {
+        const sheet = doc.sheetsByTitle[SHEETS.LEDGER];
+        const rows = await sheet.getRows();
+        const row = rows.find(r => r.get('entryId') === entryId);
+
+        if (row) {
+            row.assign({ type: 'given' });
+            await row.save();
+            return { success: true };
+        }
+        return { success: false, message: 'Entry not found' };
+    } catch (e) {
+        console.error("Approve Request Failed:", e);
+        return { success: false };
+    }
+}
+
+export async function updateClientStatus(clientId: string, status: string) {
+    const doc = await getDoc();
+    if (!doc) return { success: true };
+
+    try {
+        const sheet = doc.sheetsByTitle[SHEETS.CLIENTS];
+        const rows = await sheet.getRows();
+        const row = rows.find(r => r.get('clientId') === clientId);
+        if (row) {
+            row.assign({ status });
+            await row.save();
+            return { success: true };
+        }
+        return { success: false };
+    } catch (e) { return { success: false }; }
+}
+
+export async function updateClient(clientId: string, clientData: any) {
+    const doc = await getDoc();
+    if (!doc) {
+        console.log("Mock Update Client:", clientId, clientData);
+        return { success: true };
+    }
+
+    try {
+        const sheet = doc.sheetsByTitle[SHEETS.CLIENTS];
+        const rows = await sheet.getRows();
+        const row = rows.find(r => r.get('clientId') === clientId);
+
+        if (row) {
+            row.assign({
+                clientName: clientData.clientName,
+                contact: clientData.contact,
+                businessType: clientData.businessType
+            });
+            await row.save();
+            return { success: true };
+        }
+        return { success: false, message: 'Client not found' };
+    } catch (e) {
+        console.error("Update Client Failed:", e);
+        return { success: false };
+    }
+}
+
+export async function addLog(logEntry: any) {
+    const doc = await getDoc();
+    if (!doc) {
+        console.log("Mock Log:", logEntry);
+        return { success: true };
+    }
+
+    try {
+        const sheet = doc.sheetsByTitle[SHEETS.LOGS];
+        await sheet.addRow({
+            logId: `log_${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            actor: logEntry.actor || 'Admin',
+            action: logEntry.action,
+            details: JSON.stringify(logEntry.details)
+        });
+        return { success: true };
+    } catch (e) {
+        console.error("Add Log Failed:", e);
         return { success: false };
     }
 }

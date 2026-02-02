@@ -1,19 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  DollarSign,
-  Wallet,
-  Activity,
-  ArrowUp,
-  Clock,
-  ArrowRight,
-  Monitor,
-  Bell,
-  Lock,
-  Edit2,
-  ChevronRight
-} from 'lucide-react';
+import { ArrowUp, Lock, Clock, Monitor, ChevronRight, Users, ChevronDown, ArrowRight, Eye, Pencil, Trash2, AlertCircle, CheckCircle2, XCircle, Bell, TrendingUp, DollarSign } from 'lucide-react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -67,14 +55,12 @@ export default function DashboardPage() {
     type: p.type
   })).reverse();
 
-  // Format for Bar Chart (Mocking stacked data for demo matching reference)
-  const barChartData = [
-    { name: 'Food Hub', Advance: 4000, Mid: 2400, Final: 2400 },
-    { name: 'Suresh Hotel', Advance: 3000, Mid: 1398, Final: 2210 },
-    { name: '₹ Final', Advance: 2000, Mid: 9800, Final: 2290 },
-    { name: 'Dr Mehta', Advance: 2780, Mid: 3908, Final: 2000 },
-    { name: 'May 27', Advance: 1890, Mid: 4800, Final: 2181 },
-  ];
+  // Format for Bar Chart
+  const barChartData = clients.map(c => ({
+    name: c.clientName,
+    Paid: c.financials.paid,
+    Pending: c.financials.pending
+  }));
 
   if (loading) {
     return (
@@ -118,64 +104,57 @@ export default function DashboardPage() {
 
       {/* Metric Cards Row */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1: Revenue */}
-        <div className="panel flex flex-col justify-between h-[140px] relative overflow-hidden group hover:border-[#7A5BFF]/50 transition-all duration-300">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Lock size={60} />
-          </div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="p-2 rounded-lg bg-[#7A5BFF]/20 text-[#7A5BFF]">
-              <Lock size={18} />
-            </div>
-            <span className="text-3xl font-bold tracking-tight">₹1,35,000</span>
-          </div>
-          <div>
-            <p className="text-muted text-sm font-medium">Total Revenue</p>
-            <p className="text-[#23D07A] text-sm font-bold flex items-center gap-1 mt-1">
-              +₹65,000 <ArrowUp size={12} strokeWidth={4} />
-            </p>
-          </div>
-        </div>
+        {/* Card 1: Total Revenue */}
+        <Card className="bg-gradient-to-br from-[#7A5BFF]/10 to-[#7A5BFF]/5 border-[#7A5BFF]/20 hover:shadow-[0_0_30px_rgba(122,91,255,0.3)] transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
+            <Lock className="h-4 w-4 text-[#7A5BFF]" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">₹{summary?.totalRevenue?.toLocaleString() || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Projected Revenue - Pending</p>
+          </CardContent>
+        </Card>
 
-        {/* Card 2: Pending */}
-        <div className="panel flex flex-col justify-between h-[140px] relative overflow-hidden hover:border-[#ffb86b]/50 transition-colors">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="p-2 rounded-lg bg-[#FFB86B]/20 text-[#FFB86B]">
-              <Clock size={18} />
-            </div>
-            <span className="text-3xl font-bold tracking-tight">₹{summary.totalPending.toLocaleString()}</span>
-          </div>
-          <p className="text-muted text-sm font-medium">Pending</p>
-        </div>
+        {/* Card 2: Projected Revenue */}
+        <Card className="bg-gradient-to-br from-[#FFB86B]/10 to-[#FFB86B]/5 border-[#FFB86B]/20 hover:shadow-[0_0_30px_rgba(255,184,107,0.3)] transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Projected Revenue</CardTitle>
+            <TrendingUp className="h-4 w-4 text-[#FFB86B]" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">₹{summary?.projectedRevenue?.toLocaleString() || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">All Projects Total Value</p>
+          </CardContent>
+        </Card>
 
-        {/* Card 3: Status */}
-        <div className="panel flex flex-col justify-between h-[140px] relative overflow-hidden hover:border-[#7A5BFF]/50 transition-colors">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="p-2 rounded-lg bg-[#7A5BFF]/20 text-[#7A5BFF]">
-              <Monitor size={18} />
-            </div>
-            <span className="text-3xl font-bold tracking-tight">₹{summary.totalReceived.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <p className="text-muted text-sm font-medium">Status:</p>
-            <span className="text-[#7A5BFF] text-sm font-medium">Online</span>
-          </div>
-        </div>
+        {/* Card 3: Pending */}
+        <Card className="bg-gradient-to-br from-[#4FD1FF]/10 to-[#4FD1FF]/5 border-[#4FD1FF]/20 hover:shadow-[0_0_30px_rgba(79,209,255,0.3)] transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
+            <Lock className="h-4 w-4 text-[#4FD1FF]" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">₹{summary?.totalPending?.toLocaleString() || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Yet to receive</p>
+          </CardContent>
+        </Card>
 
-        {/* Card 4: Cash Stats */}
-        <div className="panel flex flex-row items-center justify-between h-[140px] pr-6 relative overflow-hidden hover:border-[#4FD1FF]/50 transition-colors">
-          <div className="h-24 w-24 relative">
-            {/* Simulated Pie Chart */}
-            <div className="absolute inset-0 rounded-full border-8 border-[#4FD1FF]/30 border-t-[#4FD1FF] rotate-45"></div>
-          </div>
-          <div className="text-right z-10">
-            <span className="text-3xl font-bold tracking-tight block">₹950,000</span>
-            <p className="text-muted text-sm mb-1">Cash</p>
-            <div className="flex items-center justify-end gap-2 text-xs">
-              <span className="w-2 h-2 rounded-full bg-[#23D07A]"></span>
-              <span className="text-[#23D07A]">Cash ₹0,000</span>
-            </div>
-          </div>
+        {/* Card 4: Cash Payments */}
+        <div className="relative group">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-[#23D07A] to-[#4FD1FF] rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-300"></div>
+          <Card className="relative bg-black/40 border-white/10 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Cash Payments</CardTitle>
+              <DollarSign className="h-4 w-4 text-[#23D07A]" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold bg-gradient-to-r from-[#23D07A] to-[#4FD1FF] bg-clip-text text-transparent">
+                ₹{summary?.totalCash?.toLocaleString() || 0}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Cash received from clients</p>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -185,7 +164,6 @@ export default function DashboardPage() {
         <div className="panel min-h-[400px]">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-white">Payments Overview</h3>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10"><Edit2 size={12} className="text-muted" /></Button>
           </div>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -264,24 +242,17 @@ export default function DashboardPage() {
                   cursor={{ fill: 'rgba(255,255,255,0.03)' }}
                   contentStyle={{ backgroundColor: '#0B0710', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                 />
-                <Bar dataKey="Advance" stackId="a" fill="#7A5BFF" radius={[0, 0, 4, 4]} fillOpacity={0.8} />
-                <Bar dataKey="Mid" stackId="a" fill="#4FD1FF" fillOpacity={0.8} />
-                <Bar dataKey="Final" stackId="a" fill="#23D07A" radius={[4, 4, 0, 0]} fillOpacity={0.8} />
+                <Bar dataKey="Paid" stackId="a" fill="#23D07A" radius={[0, 0, 4, 4]} fillOpacity={0.8} />
+                <Bar dataKey="Pending" stackId="a" fill="#FFB86B" radius={[4, 4, 0, 0]} fillOpacity={0.8} />
               </BarChart>
             </ResponsiveContainer>
           </div>
           <div className="flex gap-4 mt-4 justify-center">
             <div className="flex items-center gap-2 text-xs text-muted">
-              <span className="w-2 h-2 rounded-full bg-[#7A5BFF]"></span> Advance
+              <span className="w-2 h-2 rounded-full bg-[#23D07A]"></span> Paid
             </div>
             <div className="flex items-center gap-2 text-xs text-muted">
-              <span className="w-2 h-2 rounded-full bg-[#4FD1FF]"></span> Mid
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted">
-              <span className="w-2 h-2 rounded-full bg-[#23D07A]"></span> Final
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted">
-              <span className="w-2 h-2 rounded-full bg-[#23D07A]"></span> Cash
+              <span className="w-2 h-2 rounded-full bg-[#FFB86B]"></span> Pending
             </div>
           </div>
         </div>

@@ -1,0 +1,288 @@
+# Financial Calculations & Formulas Documentation
+## Project Accounts - Website Freelancing
+
+### ADMIN PANEL CALCULATIONS
+
+#### 1. CLIENT COSTS & PRICING
+**Location**: Admin Panel → Pricing & Costs Tab
+
+**Input Fields**:
+- Service Cost (serviceCost)
+- Domain Charged (domainCharged) 
+- Actual Domain Cost (actualDomainCost)
+- Extra Features (extraFeatures)
+- Extra Production Charges (extraProductionCharges)
+
+**Formula: Total Value**
+```
+Total Value = Service Cost + Domain Charged + Extra Features + Extra Production Charges
+```
+**Reasoning**: Total Value represents the TOTAL amount we charge the client. This is the gross revenue from the project before accounting for our costs.
+
+**Formula: Total Profit**
+```
+Total Profit = Total Value + (Domain Charged - Actual Domain Cost)
+```
+**Reasoning**: This formula accounts for the domain profit separately. We charge the client "Domain Charged" but only spend "Actual Domain Cost", so the difference is pure profit. We ADD this to the Total Value because:
+- Total Value already includes the Domain Charged amount
+- The domain profit is the EXTRA money we make from the markup
+- Example: If Total Value = 10,000, Domain Charged = 500, Actual Domain Cost = 300
+  - Profit = 10,000 + (500 - 300) = 10,200
+  - This means we made 10,200 profit because we saved 200 on domain costs
+
+**Data Sync**: 
+- All cost fields are saved to Google Sheets "Clients" tab
+- Columns: serviceCost, domainCharged, actualDomainCost, extraFeatures, extraProductionCharges, totalValue, profit
+- Updates happen when "Save Changes" is clicked
+
+---
+
+#### 2. CLIENT PAYMENTS TRACKING
+**Location**: Admin Panel → Payments Tab (ClientPayments component)
+
+**Payment Types**:
+- UPI
+- Cash  
+- Bank Transfer
+
+**Formulas**:
+```
+Total Paid = SUM of all payment amounts for this client
+Pending = Total Value - Total Paid
+```
+
+**Reasoning**: We track every payment the client makes. The pending amount is simply what they still owe us. This is calculated dynamically from the Payments sheet, NOT stored as a static field.
+
+**Data Sync**:
+- Payments stored in "Payments" sheet
+- Columns: paymentId, clientId, date, amount, type, notes
+- Each payment is linked to a client via clientId
+
+---
+
+#### 3. TEAM MONEY MANAGEMENT
+**Location**: Admin Panel → Team Money Tab (TeamMoney component)
+
+**Formula: Balance Given**
+```
+Balance Given = SUM of all "given" type entries for this team member and client
+```
+
+**Formula: Total Spent**
+```
+Total Spent = SUM of all "spent" type entries for this team member and client
+```
+
+**Formula: Balance Left**
+```
+Balance Left = Balance Given - Total Spent
+```
+
+**Reasoning**: 
+- Admin gives money to team members for project expenses
+- Team members spend that money and log it
+- Balance Left tells us how much of the given money is still unspent
+
+**Data Sync**:
+- Team ledger stored in "TeamLedger" sheet
+- Columns: entryId, memberId, clientId, date, amount, type, reason, by
+- Types: 'given' (admin to team), 'spent' (team expense), 'request' (team requesting funds), 'ownMoney' (team's personal contribution creating debt)
+
+---
+
+###TEAM PANEL CALCULATIONS
+
+#### 4. PROJECT WALLET & BALANCE
+**Location**: Team Panel → My Projects → Selected Project
+
+**Formula: Balance Available (Team's Perspective)**
+```
+Balance Available = Money Received from Admin - Money Spent
+```
+
+**Calculation**:
+```javascript
+const received = ledgerEntries
+  .filter(e => e.type === 'given' || e.type === 'deposit')
+  .reduce((sum, e) => sum + e.amount, 0);
+
+const spent = ledgerEntries
+  .filter(e => e.type === 'spent')
+  .reduce((sum, e) => sum + e.amount, 0);
+
+const balance = received - spent;
+```
+
+**Reasoning**: Team members need to know how much money they have available to spend on the project. This includes money given by admin and any deposits they made, minus what they've already spent.
+
+---
+
+#### 5. PENDING AMOUNT (Team View)
+**Location**: Team Panel → Project Card
+
+**Formula**:
+```
+Pending = Total Value - Total Paid (by client)
+```
+
+**Calculation**:
+```javascript
+const totalPaid = payments
+  .filter(p => p.clientId === clientId)
+  .reduce((sum, p) => sum + p.amount, 0);
+
+const pending = client.totalValue - totalPaid;
+```
+
+**Reasoning**: Team members see how much money is still pending from the client. This helps them understand project cash flow.
+
+---
+
+#### 6. OWN MONEY (DEBT TRACKING)
+**Location**: Team Panel → Add Entry → Type: "Added Own Money"
+
+**Formula: Admin Owes Team**
+```
+Admin Debt = SUM of all "ownMoney" type entries
+```
+
+**Reasoning**: Sometimes team members spend their own money on project costs. The admin needs to reimburse them later. This creates a debt that admin owes to the team member.
+
+**Data Sync**:
+- Creates ledger entry with type='ownMoney' and amount as positive value
+- Shows in Team Panel as "Personal Contribution"
+- Shows in Admin Panel TeamMoney as amount admin needs to pay back
+
+---
+
+### DASHBOARD CALCULATIONS
+
+#### 7. PROJECTED REVENUE
+**Location**: Dashboard → Metric Card
+
+**Formula**:
+```
+Projected Revenue = SUM of Total Value for all active clients
+```
+
+**Calculation**:
+```javascript
+const projectedRevenue = clients
+  .filter(c => c.status !== 'Deleted')
+  .reduce((sum, c) => sum + c.totalValue, 0);
+```
+
+**Reasoning**: This is the TOTAL potential revenue if all clients pay their full project cost. It's called "projected" because some clients haven't paid yet.
+
+---
+
+#### 8. TOTAL REVENUE (ACTUAL)
+**Location**: Dashboard → Metric Card
+
+**Formula**:
+```
+Total Revenue = Projected Revenue - Total Pending
+```
+
+**Calculation**:
+```javascript
+// First calculate total pending across all clients
+const totalPending = clients
+  .filter(c => c.status !== 'Deleted')
+  .reduce((sum, c) => {
+    const clientPaid = payments
+      .filter(p => p.clientId === c.clientId)
+      .reduce((s, p) => s + p.amount, 0);
+    return sum + (c.totalValue - clientPaid);
+  }, 0);
+
+const totalRevenue = projectedRevenue - totalPending;
+```
+
+**Reasoning**: Total Revenue represents money we've actually received or are entitled to (minus what's still pending). This gives a realistic view of our financial position.
+
+---
+
+#### 9. PENDING (DASHBOARD)
+**Location**: Dashboard → Metric Card
+
+**Formula**:
+```
+Total Pending = SUM of (Client Total Value - Client Payments) for all clients
+```
+
+**Calculation**:
+```javascript
+const totalPending = clients.reduce((sum, client) => {
+  const clientPayments = payments
+    .filter(p => p.clientId === client.clientId)
+    .reduce((s, p) => s + p.amount, 0);
+  
+  const clientPending = client.totalValue - clientPayments;
+  return sum + clientPending;
+}, 0);
+```
+
+**Reasoning**: This aggregates how much money is still owed to us across ALL projects. It uses actual payment data from the Payments sheet NOT a stored value.
+
+---
+
+#### 10. CASH PAYMENTS
+**Location**: Dashboard → Metric Card
+
+**Formula**:
+```
+Total Cash = SUM of payments where type = 'cash'
+```
+
+**Calculation**:
+```javascript
+const totalCash = payments
+  .filter(p => p.type?.toLowerCase() === 'cash')
+  .reduce((sum, p) => sum + p.amount, 0);
+```
+
+**Reasoning**: Businesses need to track cash separately for accounting and tax purposes. This shows only the cash portion of payments received.
+
+---
+
+### GOOGLE SHEETS STRUCTURE
+
+**Clients Sheet**:
+- clientId clientName contact businessType startDate assignedMember
+- serviceCost domainCharged actualDomainCost extraFeatures extraProductionCharges
+- totalValue profit paid pending status
+
+**Payments Sheet**:
+- paymentId clientId date amount type notes
+
+**TeamLedger Sheet**:
+- entryId memberId clientId date amount type reason by
+
+**Logs Sheet**:
+- logId timestamp actor action details
+
+---
+
+### KEY INSIGHTS
+
+1. **Why Total Profit includes Domain Profit**: The domain markup is ADDITIONAL profit on top of the project value. If we just did (Total Value - Costs) we'd lose the domain profit.
+
+2. **Why Pending is Calculated Not Stored**: Pending changes every time a payment is made. Calculating it from payments ensures accuracy and avoids sync issues.
+
+3. **Why Team Balance and Admin Debt are Separate**: Team members track their available spending money. Admin tracks what they owe team members. These are different perspectives on the same project finances.
+
+4. **Why We Track Payment Types**: Different payment types have different tax implications and reconciliation requirements. Cash needs special tracking.
+
+5. **Auto-Refresh Strategy**: After every mutation (cost update payment add ledger entry) we reload ALL data to ensure consistency across all panels.
+
+---
+
+### ERROR PREVENTION
+
+**Common Mistakes to Avoid**:
+1. Storing pending as a static value → Always calculate from payments
+2. Forgetting to update Sheets after cost changes → Call sheet.saveUpdatedCells() 
+3. Using hardcoded values for totals → Sum from actual data
+4. Not filtering deleted clients → Always check status !== Deleted
+5. Mixing team spending with client payments → Keep separate ledgers

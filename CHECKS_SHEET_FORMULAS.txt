@@ -1,0 +1,177 @@
+# Diagnostic Formulas for Checks Sheet
+
+## Instructions
+1. Create a new sheet named "Checks" in your Google Spreadsheet
+2. Copy these formulas into the indicated cells
+3. Run regularly to detect data inconsistencies
+
+---
+
+## A1: Orphan Payments (payments with no matching client)
+
+```excel
+=FILTER(Payments!A2:H, ISNA(MATCH(Payments!C2:C, Clients!A2:A, 0)))
+```
+
+**What it checks**: Finds payments that reference non-existent clientIds
+**Expected result**: Empty (no orphan payments)
+**If not empty**: Delete invalid payment rows or fix clientId references
+
+---
+
+## A10: Paid Amount Mismatch (sheet value vs calculated)
+
+```excel
+=ARRAYFORMULA(IF(Clients!A2:A="", "", 
+  "Client: " & Clients!A2:A & 
+  " | Sheet Paid: ₹" & Clients!N2:N & 
+  " | Calculated: ₹" & IFERROR(SUMIF(Payments!$C:$C, Clients!A2:A, Payments!$E:$E), 0) &
+  " | Diff: ₹" & (Clients!N2:N - IFERROR(SUMIF(Payments!$C:$C, Clients!A2:A, Payments!$E:$E), 0))
+))
+```
+
+**What it checks**: Compares stored "paid" value vs sum of actual payments
+**Expected result**: All diffs should be ₹0
+**If not ₹0**: Run recalc to fix
+
+---
+
+## A20: Negative Pending (clients owe negative money)
+
+```excel
+=FILTER(Clients!A2:O, Clients!O2:O < 0)
+```
+
+**What it checks**: Finds clients with negative pending amounts (overpaid)
+**Expected result**: Empty (or only intentional overpayments)
+**If not empty**: Investigate - may indicate data entry error or refund scenario
+
+---
+
+## A30: Negative Profit
+
+```excel
+=FILTER(Clients!A2:P, Clients!P2:P < 0)
+```
+
+**What it checks**: Finds clients with negative profit (loss-making projects)
+**Expected result**: Depends on business (may be legitimate)
+**If unexpected**: Review cost structure
+
+---
+
+## A40: Total Value Mismatch (sheet value vs calculated)
+
+```excel
+=ARRAYFORMULA(IF(Clients!A2:A="", "", 
+  "Client: " & Clients!A2:A & 
+  " | Sheet: ₹" & Clients!M2:M & 
+  " | Calculated: ₹" & (Clients!H2:H + Clients!I2:I + Clients!K2:K + Clients!L2:L) &
+  " | Diff: ₹" & (Clients!M2:M - (Clients!H2:H + Clients!I2:I + Clients!K2:K + Clients!L2:L))
+))
+```
+
+**What it checks**: Validates totalValue = serviceCost + domainCharged + extraFeatures + extraProductionCharges
+**Expected result**: All diffs should be ₹0
+**If not ₹0**: Run recalc
+
+---
+
+## A50: Missing Required Fields
+
+```excel
+=FILTER(Clients!A2:G, (Clients!A2:A<>"") * ((Clients!B2:B="") + (Clients!F2:F="")))
+```
+
+**What it checks**: Finds clients missing name or assignedMember
+**Expected result**: Empty
+**If not empty**: Fill in missing data
+
+---
+
+## A60: Duplicate Client IDs
+
+```excel
+=FILTER(Clients!A2:A, COUNTIF(Clients!A:A, Clients!A2:A) > 1)
+```
+
+**What it checks**: Finds duplicate clientId values
+**Expected result**: Empty (all IDs should be unique)
+**If not empty**: CRITICAL - fix duplicates immediately
+
+---
+
+## A70: Payment Type Validation
+
+```excel
+=FILTER(Payments!A2:H, NOT(REGEXMATCH(LOWER(Payments!F2:F), "^(upi|cash|bank)$")))
+```
+
+**What it checks**: Finds payments with invalid type (not upi/cash/bank)
+**Expected result**: Empty
+**If not empty**: Fix payment type values
+
+---
+
+## A80: Future-Dated Payments
+
+```excel
+=FILTER(Payments!A2:H, Payments!D2:D > TODAY() + 1)
+```
+
+**What it checks**: Finds payments dated more than 1 day in the future
+**Expected result**: Empty (or minimal scheduled payments)
+**If unexpected**: Check for data entry errors
+
+---
+
+## A90: Zero or Negative Payments
+
+```excel
+=FILTER(Payments!A2:H, Payments!E2:E <= 0)
+```
+
+**What it checks**: Finds invalid payment amounts
+**Expected result**: Empty (all payments should be positive)
+**If not empty**: Delete or correct invalid rows
+
+---
+
+## HOW TO USE
+
+1. **Initial Setup**: 
+   - Create "Checks" sheet
+   - Paste all formulas
+   - Review results
+
+2. **Before Migration**:
+   - All checks MUST pass (show empty or ₹0 diffs)
+   - Fix any issues found
+   - Run recalc if needed
+
+3. **After Migration**:
+   - Run checks daily for first week
+   - Run checks before major changes
+   - Set up automated alerts if possible
+
+4. **Ongoing**:
+   - Run checks weekly
+   - Investigate any anomalies immediately
+   - Update formulas if sheet structure changes
+
+---
+
+## TROUBLESHOOTING
+
+**Formula returns #REF!**
+- Check column letters match your sheet structure
+- Verify sheet names (Clients, Payments) are correct
+
+**Formula returns #N/A**
+- Normal for FILTER with no results
+- Can wrap in IFERROR(formula, "✓ No issues found")
+
+**Too slow to calculate**
+- Add MaxRows parameter to FILTER
+- Use manual calculation mode in Sheets
+- Run on demand rather than auto-refresh

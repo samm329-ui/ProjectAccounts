@@ -20,7 +20,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { getTeamLedger, getClients } from '@/lib/api';
+import { getTeamLedger, getClients, addTeamLedgerEntry } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -43,14 +43,18 @@ function formatTimeAgo(timestamp: string) {
 
 const TeamContent = () => {
     const [ledger, setLedger] = useState<any[]>([]);
+
     const [clients, setClients] = useState<any[]>([]);
+    const [filteredClients, setFilteredClients] = useState<any[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Form state
     const [amount, setAmount] = useState('');
     const [reason, setReason] = useState('');
-    const [type, setType] = useState('spent');
+    const [type, setType] = useState('spent'); // 'spent', 'request', 'deposit'
 
     useEffect(() => {
         async function fetchData() {
@@ -61,6 +65,7 @@ const TeamContent = () => {
                 ]);
                 setLedger(ledgerData);
                 setClients(clientsData);
+                setFilteredClients(clientsData);
                 if (clientsData.length > 0) {
                     setSelectedClientId(clientsData[0].clientId);
                 }
@@ -72,6 +77,45 @@ const TeamContent = () => {
         }
         fetchData();
     }, []);
+
+    useEffect(() => {
+        if (searchQuery.trim() === '') {
+            setFilteredClients(clients);
+        } else {
+            setFilteredClients(clients.filter(c => c.clientName.toLowerCase().includes(searchQuery.toLowerCase())));
+        }
+    }, [searchQuery, clients]);
+
+    const handleLogExpense = async (submitType: string) => {
+        if (!selectedClientId) return;
+        setIsSubmitting(true);
+        try {
+            const result = await addTeamLedgerEntry({
+                memberId: 'member_1',
+                clientId: selectedClientId,
+                date: new Date().toISOString(),
+                amount: Number(amount) || 0,
+                type: submitType, // 'spent', 'request', 'deposit'
+                reason: reason,
+                by: 'Team Member'
+            });
+
+            if (result.success) {
+                // Refresh data
+                const newLedger = await getTeamLedger('member_1');
+                setLedger(newLedger);
+                setAmount('');
+                setReason('');
+                alert(submitType === 'request' ? 'Request sent successfully' : 'Entry added successfully');
+            } else {
+                alert('Failed to add entry');
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const selectedClient = clients.find(c => c.clientId === selectedClientId);
     const projectLedger = ledger.filter(l => l.clientId === selectedClientId);
@@ -126,11 +170,19 @@ const TeamContent = () => {
                             <h2 className="text-lg font-semibold mb-4">My Projects</h2>
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input placeholder="Search projects..." className="pl-10 bg-black/30 border-white/10 text-sm h-10 rounded-lg focus-visible:ring-[#4FD1FF]/50" />
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search projects..."
+                                        className="pl-10 bg-black/30 border-white/10 text-sm h-10 rounded-lg focus-visible:ring-[#4FD1FF]/50"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
                             </div>
                         </div>
                         <div className="flex-grow overflow-y-auto pr-2 space-y-2 custom-scrollbar">
-                            {clients.map(client => (
+                            {filteredClients.map(client => (
                                 <div key={client.clientId}
                                     onClick={() => setSelectedClientId(client.clientId)}
                                     className={`p-4 rounded-xl cursor-pointer transition-all border ${selectedClientId === client.clientId ? 'bg-white/[0.08] border-white/10 shadow-lg' : 'bg-transparent border-transparent hover:bg-white/[0.03]'}`}>
@@ -234,8 +286,8 @@ const TeamContent = () => {
                                             <Input placeholder="e.g. Server hosting fee, Domain renewal..." className="bg-black/20 border-white/10" value={reason} onChange={e => setReason(e.target.value)} />
                                         </div>
 
-                                        <Button className="w-full btn-primary mt-4">
-                                            {type === 'spent' ? 'Log Expense' : 'Request Funds'}
+                                        <Button className="w-full btn-primary mt-4" onClick={handleLogExpense} disabled={isSubmitting || !amount}>
+                                            {isSubmitting ? 'Processing...' : (type === 'spent' ? 'Log Expense' : 'Request Funds')}
                                         </Button>
                                         <p className="text-xs text-muted-foreground text-center">
                                             Requires Admin Approval for large amounts.
@@ -279,20 +331,18 @@ const TeamContent = () => {
                     <div className="panel flex-grow p-6">
                         <h3 className="text-sm font-medium text-muted-foreground mb-4">Recent Notifications</h3>
                         <div className="space-y-4">
-                            <div className="flex gap-3 items-start">
-                                <div className="w-2 h-2 rounded-full bg-[#4FD1FF] mt-1.5 shrink-0"></div>
-                                <div>
-                                    <p className="text-xs text-white">New payment received from Admin</p>
-                                    <p className="text-[10px] text-muted-foreground">2 hours ago</p>
+                            {ledger.slice(0, 4).map((entry, i) => (
+                                <div key={i} className="flex gap-3 items-start">
+                                    <div className={`w-2 h-2 rounded-full ${entry.type === 'given' ? 'bg-[#4FD1FF]' : 'bg-[#FFB86B]'} mt-1.5 shrink-0`}></div>
+                                    <div>
+                                        <p className="text-xs text-white">
+                                            {entry.type === 'given' ? `Received ₹${entry.amount} for ${entry.reason}` : `Spent ₹${entry.amount} on ${entry.reason}`}
+                                        </p>
+                                        <p className="text-[10px] text-muted-foreground">{formatTimeAgo(entry.date)}</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex gap-3 items-start">
-                                <div className="w-2 h-2 rounded-full bg-[#FFB86B] mt-1.5 shrink-0"></div>
-                                <div>
-                                    <p className="text-xs text-white">Expense 'hosting' exceeded limit warning</p>
-                                    <p className="text-[10px] text-muted-foreground">1 day ago</p>
-                                </div>
-                            </div>
+                            ))}
+                            {ledger.length === 0 && <p className="text-xs text-muted-foreground">No recent notifications.</p>}
                         </div>
                     </div>
                 </div>

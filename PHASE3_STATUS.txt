@@ -1,0 +1,324 @@
+# Phase 3 Implementation Status & Fixes Applied
+
+## ✅ COMPLETED FIXES
+
+### 1. Profit Calculation Formula (FIXED)
+**Location**: `src/lib/api.ts` - `updateClientCosts()` 
+**Formula**: `Profit = Total Value + (Domain Charged - Actual Domain Cost)`
+**Status**: ✅ Implemented correctly in both API and Admin Panel
+
+### 2. Dashboard Metrics (FIXED)
+**Location**: `src/app/projects/website-freelancing/dashboard/page.tsx`
+- ✅ Added "Projected Revenue" card showing all projects total value
+- ✅ "Total Revenue" now shows: Projected Revenue - Pending  
+- ✅ "Cash Payments" shows only cash-type payments from Payments sheet
+- ✅ Fixed JSX structure errors
+
+### 3. Auto-Save on Cost Fields (PARTIAL)
+**Location**: `src/app/projects/website-freelancing/admin/page.tsx`
+- ✅ Added `handleCostBlur()` function
+- ⚠️ NEEDS: onBlur handlers on input fields (see below)
+
+### 4. Formula Documentation (COMPLETE)
+**Location**: `FORMULAS_DOCUMENTATION.txt`
+- ✅ Complete documentation of all calculations
+- ✅ Includes reasoning for each formula
+- ✅ Data flow diagrams
+
+---
+
+## 🔧 FIXES IN PROGRESS / NEEDED
+
+### Issue 1: getClients() Not Using Payment Data
+**Problem**: `getClients()` currently uses stored `paid` and `pending` values instead of calculating from Payments sheet.
+
+**Required Fix in** `src/lib/api.ts`:
+```typescript
+export async function getClients() {
+    const doc = await getDoc();
+    if (!doc) return mockData.clients;
+
+    try {
+        const clientsSheet = doc.sheetsByTitle[SHEETS.CLIENTS];
+        const paymentsSheet = doc.sheetsByTitle[SHEETS.PAYMENTS];
+        
+        const clientRows = await clientsSheet.getRows();
+        const paymentRows = paymentsSheet ? await paymentsSheet.getRows() : [];
+
+        const clients = clientRows.filter(r => r.get('status') !== 'Deleted').map(row => {
+            const clientId = row.get('clientId');
+            
+            // CALCULATE from actual payments
+            const clientPayments = paymentRows.filter(p => p.get('clientId') === clientId);
+            const totalPaid = clientPayments.reduce((sum, p) => sum + (Number(p.get('amount')) || 0), 0);
+            
+            const totalValue = Number(row.get('totalValue') || 0);
+            const pending = totalValue - totalPaid;
+
+            // Update sheet with calculated values
+            row.set('paid', totalPaid);
+            row.set('pending', pending);
+
+            return {
+                clientId,
+                clientName: row.get('clientName'),
+                ... // rest of fields
+                financials: {
+                    totalValue,
+                    paid: totalPaid,      // ← From calculation
+                    pending,               // ← From calculation  
+                    profit: Number(row.get('profit') || 0),
+                }
+            };
+        });
+
+        await clientsSheet.saveUpdatedCells();
+        return clients;
+    } catch (error) {
+        console.error("Error fetching clients:", error);
+        return [];
+    }
+}
+```
+
+---
+
+### Issue 2: Cost Fields Not Auto-Updating Sheets
+**Problem**: When admin changes Domain Charged, Actual Domain Cost, etc., changes don't save to Sheets until "Save Changes" clicked.
+
+**Solution**: Add onBlur to all cost input fields in Admin Panel:
+
+**Required Fix in** `src/app/projects/website-freelancing/admin/page.tsx`:
+
+Find the cost input fields (around line 450-500) and add `onBlur={handleCostBlur}`:
+
+```tsx
+<Input
+    type="number"
+    name="serviceCost"
+    value={costs.serviceCost || ''}
+    onChange={handleCostChange}
+    onBlur={handleCostBlur}  // ← ADD THIS
+    placeholder="e.g., 5000"
+/>
+
+<Input
+    type="number"
+    name="domainCharged"
+    value={costs.domainCharged || ''}
+    onChange={handleCostChange}
+    onBlur={handleCostBlur}  // ← ADD THIS
+    placeholder="e.g., 500"
+/>
+
+// Repeat for: actualDomainCost, extraFeatures, extraProductionCharges
+```
+
+---
+
+### Issue 3: Team Panel Wallet Not Updating
+**Problem**: Team member's wallet balance doesn't update when money is spent or received.
+
+**Required Fix in** `src/app/projects/website-freelancing/team/page.tsx`:
+
+Ensure ledger calculations are correct:
+
+```typescript
+const teamLedgerForClient = ledger.filter(e => 
+    e.memberId === 'Atithi' &&  // Current team member
+    e.clientId === selectedClientId
+);
+
+const received = teamLedgerForClient
+    .filter(e => e.type === 'given' || e.type === 'deposit')
+    .reduce((sum, e) => sum + e.amount, 0);
+
+const spent = teamLedgerForClient
+    .filter(e => e.type === 'spent')
+    .reduce((sum, e) => sum + e.amount, 0);
+
+const balance = received - spent;
+```
+
+**Also ensure**: After logging expense, call `await refreshData()` to reload ledger.
+
+---
+
+### Issue 4: No Notifications System
+**Problem**: Admin and Team panels don't show recent activity notifications.
+
+**Required Implementation**:
+
+1. **Create Notification Component** (`components/ui/notifications.tsx`):
+```tsx
+export function NotificationBell({ logs, onMarkRead }) {
+  const [open, setOpen] = useState(false);
+  const unreadCount = logs.filter(l => !l.read).length;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger>
+        <Button variant="ghost" size="icon">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <span className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 text-xs">
+              {unreadCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent>
+        <div className="space-y-2">
+          {logs.slice(0, 5).map(log => (
+            <div key={log.logId} className="p-2 border-b">
+              <p className="text-sm font-medium">{log.action}</p>
+              <p className="text-xs text-muted-foreground">{log.details}</p>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+```
+
+2. **Add to Admin Panel** (around line 200):
+```tsx
+const [logs, setLogs] = useState([]);
+
+useEffect(() => {
+  async function fetchLogs() {
+    const logsData = await getLogs();
+    setLogs(logsData);
+  }
+  fetchLogs();
+  const interval = setInterval(fetchLogs, 30000); // Poll every 30s
+  return () => clearInterval(interval);
+}, []);
+
+// In header
+<NotificationBell logs={logs} />
+```
+
+3. **Add to Team Panel**: Same pattern
+
+---
+
+### Issue 5: Admin Overview Tab Not Working
+**Problem**: Overview tab shows no data.
+
+**Required Fix in** `src/app/projects/website-freelancing/admin/page.tsx`:
+
+Find the Overview TabsContent section and ensure it displays metrics:
+
+```tsx
+<TabsContent value="overview">
+  <div className="grid gap-6 md:grid-cols-3">
+    <Card>
+      <CardHeader>
+        <CardTitle>Total Clients</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold">{clients.length}</div>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle>Total Revenue</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold">
+          ₹{clients.reduce((sum, c) => sum + c.financials.totalValue, 0).toLocaleString()}
+        </div>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle>Total Pending</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold">
+          ₹{clients.reduce((sum, c) => sum + c.financials.pending, 0).toLocaleString()}
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+</TabsContent>
+```
+
+---
+
+### Issue 6: Team Balance Left Calculation
+**Problem**: In Admin Panel TeamMoney component, Balance Left may not calculate correctly.
+
+**Required Fix in** `src/app/projects/website-freelancing/admin/components/TeamMoney.tsx`:
+
+```typescript
+const balanceGiven = ledger
+    .filter(e => e.type === 'given' && e.memberId === selectedMember && e.clientId === selectedClient)
+    .reduce((sum, e) => sum + e.amount, 0);
+
+const totalSpent = ledger
+    .filter(e => e.type === 'spent' && e.memberId === selectedMember && e.clientId === selectedClient)
+    .reduce((sum, e) => sum + e.amount, 0);
+
+const balanceLeft = balanceGiven - totalSpent;
+```
+
+---
+
+## 📋 IMPLEMENTATION PRIORITY
+
+1. **CRITICAL** (Do First):
+   - Fix `getClients()` to calculate from payments ✅ Code provided above
+   - Add onBlur handlers to cost fields ✅ Code provided above
+   
+2. **HIGH** (Do Next):
+   - Fix Team Panel wallet calculation
+   - Implement notifications system
+   
+3. **MEDIUM** (Polish):
+   - Fix Admin Overview tab
+   - Add "Own Money" type to Team Panel
+   
+4. **LOW** (Nice to Have):
+   - Add View More links to individual dashboards
+   - Improve notification UI/UX
+
+---
+
+## 🧪 TESTING CHECKLIST
+
+After implementing fixes, test:
+
+1. **Admin Panel**:
+   - [ ] Change Domain Charged → verify auto-saves to Sheets
+   - [ ] Check profit calculation with example data
+   - [ ] Verify Total Value updates correctly
+   
+2. **Dashboard**:
+   - [ ] Add cash payment → verify Cash card updates
+   - [ ] Check Projected Revenue = sum of all total values
+   - [ ] Verify Pending = Projected - Total Paid
+   
+3. **Team Panel**:
+   - [ ] Log expense → verify wallet decreases
+   - [ ] Request money → verify appears in notifications
+   - [ ] Check balance calculation
+
+---
+
+## 🐛 KNOWN BUGS TO FIX
+
+1. Pending not recalculating when payment added
+2. Cost fields require manual "Save" click
+3. Team wallet shows old balance after expense
+4. No notifications for state changes
+5. Overview tab empty
+
+All bugs stem from:
+- Not using payment data for calculations
+- Missing auto-refresh after mutations
+- Missing notification polling
