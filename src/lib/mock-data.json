@@ -13,67 +13,67 @@
   "clients": [
     {
       "clientId": "client_1",
-      "clientName": "Innovate Inc.",
-      "contact": "contact@innovate.com",
-      "businessType": "Tech Startup",
+      "clientName": "Food Hub",
+      "contact": "contact@foodhub.com",
+      "businessType": "Food Delivery",
       "startDate": "2023-01-15",
       "assignedMember": "member_1",
-      "status": "Active",
+      "status": "Delivered",
       "costs": {
-        "serviceCost": 50000,
+        "serviceCost": 66000,
         "domainCharged": 5000,
         "actualDomainCost": 2000,
         "extraFeatures": 3000,
         "extraProductionCharges": 1000
       },
       "financials": {
-        "totalValue": 95000,
+        "totalValue": 75000,
         "paid": 45000,
-        "pending": 50000,
+        "pending": 30000,
         "profit": 38000
       }
     },
     {
       "clientId": "client_2",
-      "clientName": "Healthful Foods",
-      "contact": "info@healthful.com",
-      "businessType": "E-commerce",
+      "clientName": "Suresh Hotel",
+      "contact": "info@sureshhotel.com",
+      "businessType": "Hospitality",
       "startDate": "2023-02-20",
       "assignedMember": "member_2",
       "status": "Active",
       "costs": {
-        "serviceCost": 30000,
+        "serviceCost": 50000,
         "domainCharged": 1500,
         "actualDomainCost": 1500,
         "extraFeatures": 5000,
         "extraProductionCharges": 0
       },
       "financials": {
-        "totalValue": 48000,
+        "totalValue": 58000,
         "paid": 20000,
-        "pending": 28000,
+        "pending": 38000,
         "profit": 15000
       }
     },
     {
       "clientId": "client_3",
-      "clientName": "Artisan Crafts",
-      "contact": "support@artisan.io",
-      "businessType": "Marketplace",
+      "clientName": "Dr Mehta",
+      "contact": "support@drmehta.io",
+      "businessType": "Medical",
       "startDate": "2023-03-10",
       "assignedMember": "member_1",
-      "status": "Completed",
-       "costs": {
-        "serviceCost": 15000,
+      "status": "Active",
+      "costs": {
+        "serviceCost": 40000,
         "domainCharged": 1000,
         "actualDomainCost": 1000,
         "extraFeatures": 0,
         "extraProductionCharges": 0
       },
       "financials": {
-        "totalValue": 16000,
+        "totalValue": 46000,
         "paid": 16000,
-        "pending": 0,
+        "pending": 30000,
         "profit": 10000
       }
     }
@@ -109,7 +109,7 @@
       "mode": "Online",
       "recordedBy": "admin"
     },
-     {
+    {
       "paymentId": "pay_4",
       "projectId": "website-freelance",
       "clientId": "client_3",
@@ -119,7 +119,7 @@
       "mode": "Cash",
       "recordedBy": "admin"
     },
-     {
+    {
       "paymentId": "pay_5",
       "projectId": "website-freelance",
       "clientId": "client_2",
@@ -132,80 +132,84 @@
   ],
   "teamLedger": [
     {
-        "entryId": "ledger_1",
-        "memberId": "member_1",
-        "date": "2023-01-18",
-        "amount": 5000,
-        "type": "given",
-        "reason": "Initial advance for Innovate Inc.",
-        "by": "admin"
+      "entryId": "ledger_1",
+      "memberId": "member_1",
+      "clientId": "client_1",
+      "date": "2023-01-18",
+      "amount": 5000,
+      "type": "given",
+      "reason": "Initial advance for Innovate Inc.",
+      "by": "admin"
     },
     {
-        "entryId": "ledger_2",
-        "memberId": "member_1",
-        "date": "2023-01-22",
-        "amount": 1200,
-        "type": "spent",
-        "reason": "Software subscription",
-        "by": "member_1"
+      "entryId": "ledger_2",
+      "memberId": "member_1",
+      "clientId": "client_2",
+      "date": "2023-01-22",
+      "amount": 1200,
+      "type": "spent",
+      "reason": "Software subscription",
+      "by": "member_1"
     },
     {
-        "entryId": "ledger_3",
-        "memberId": "member_2",
-        "date": "2023-02-22",
-        "amount": 3000,
-        "type": "given",
-        "reason": "Advance for Healthful Foods",
-        "by": "admin"
+      "entryId": "ledger_3",
+      "memberId": "member_2",
+      "clientId": "client_2",
+      "date": "2023-02-22",
+      "amount": 3000,
+      "type": "given",
+      "reason": "Advance for Healthful Foods",
+      "by": "admin"
     },
     {
-        "entryId": "ledger_4",
-        "memberId": "member_1",
-        "date": "2023-03-12",
-        "amount": 750,
-        "type": "spent",
-        "reason": "Domain renewal for Artisan Crafts",
-        "by": "member_1"
+      "entryId": "ledger_4",
+      "memberId": "member_1",
+      "clientId": "client_3",
+      "date": "2023-03-12",
+      "amount": 750,
+      "type": "spent",
+      "reason": "Domain renewal for Artisan Crafts",
+      "by": "member_1"
     }
   ],
   "logs": [
-      {
-        "logId": "log_5",
-        "timestamp": "2024-07-29T10:30:00Z",
-        "actor": "Admin",
-        "action": "Changed Domain Charged",
-        "details": {
-            "from": 4000,
-            "to": 5000
-        }
-      },
-      {
-        "logId": "log_6",
-        "timestamp": "2024-07-29T10:05:00Z",
-        "actor": "Admin",
-        "action": "Changed Service Cost",
-        "details": {
-            "from": 86000,
-            "to": 50000
-        }
-      },
-      {
-        "logId": "log_7",
-        "timestamp": "2024-07-29T09:30:00Z",
-        "actor": "NeeFal",
-        "action": "Added Payment",
-        "details": {
-            "amount": 20000,
-            "type": "Credit",
-            "mode": "Cash"
-        }
-      },
-       {
-          "logId": "log_3",
-          "timestamp": "2024-07-28T13:45:00Z",
-          "actor": "Admin",
-          "action": "CREATE_CLIENT",
-          "details": "Added new client Healthful Foods"
+    {
+      "logId": "log_5",
+      "timestamp": "2024-07-29T10:30:00Z",
+      "actor": "Admin",
+      "action": "Changed Domain Charged",
+      "details": {
+        "from": 4000,
+        "to": 5000
       }
+    },
+    {
+      "logId": "log_6",
+      "timestamp": "2024-07-29T10:05:00Z",
+      "actor": "Admin",
+      "action": "Changed Service Cost",
+      "details": {
+        "from": 86000,
+        "to": 50000
+      }
+    },
+    {
+      "logId": "log_7",
+      "timestamp": "2024-07-29T09:30:00Z",
+      "actor": "NeeFal",
+      "action": "Added Payment",
+      "details": {
+        "amount": 20000,
+        "type": "Credit",
+        "mode": "Cash"
+      }
+    },
+    {
+      "logId": "log_3",
+      "timestamp": "2024-07-28T13:45:00Z",
+      "actor": "Admin",
+      "action": "CREATE_CLIENT",
+      "details": "Added new client Healthful Foods"
+    }
   ]
 }

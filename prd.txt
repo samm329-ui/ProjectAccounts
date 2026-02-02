@@ -1,0 +1,389 @@
+PRODUCT REQUIREMENTS DOCUMENT (PRD)
+Product Name
+
+Website Freelancing Control System
+(Internal name: Phase 0 – MVP Foundation)
+
+1. Purpose & Vision
+Purpose
+
+To build a private, premium internal website that allows the founder to manage website freelancing operations including:
+
+Client projects
+
+Payments
+
+Costs
+
+Team money
+
+Profit visibility
+
+The system replaces spreadsheets and manual calculations with a structured, visual, and controlled interface.
+
+Vision
+
+Create a single source of truth for freelancing finances that:
+
+Eliminates confusion
+
+Prevents calculation errors
+
+Reduces dependency on manual Excel work
+
+Enables transparency and control over team activity
+
+This is not a public SaaS product.
+It is an internal operations and finance control system.
+
+2. Scope (Phase 0 – MVP Foundation)
+In Scope
+
+Landing page with roadmap and project cards
+
+Project-level navigation popup
+
+Dashboard page (read-only)
+
+Admin panel (full control)
+
+Team panel (limited control)
+
+Google Sheets as backend data storage
+
+API placeholders for future integration
+
+Out of Scope (Phase 0)
+
+Public user authentication (Firebase, OAuth, etc.)
+
+Payments gateway integration
+
+Notifications (email / WhatsApp)
+
+Mobile app
+
+Multi-company support
+
+Advanced analytics / AI
+
+3. Target Users & Roles
+3.1 Admin (Founder)
+
+Full access to all data
+
+Can create and edit client projects
+
+Can manage pricing, costs, payments
+
+Can see profit and team activity
+
+Can audit logs and changes
+
+3.2 Team Member
+
+Limited access
+
+Can only:
+
+Select assigned projects
+
+Log money received or spent
+
+View their own transaction history
+
+Cannot see:
+
+Client pricing
+
+Profit
+
+Admin dashboard
+
+Other team member data
+
+3.3 Viewer (Optional)
+
+Can view dashboard only
+
+No edit access
+
+4. High-Level Website Structure
+/
+├── Landing Page
+│   ├── Hero
+│   ├── About
+│   ├── Our Motto
+│   └── Upcoming Projects (Phase 0–4)
+│
+├── Phase 0
+│   └── Project Card: Website Freelancing
+│       └── Popup (Dashboard / Admin / Team)
+│
+└── /projects/website-freelancing/
+    ├── dashboard
+    ├── admin
+    └── team
+
+5. Functional Requirements
+5.1 Project Popup (Navigation Gate)
+
+Description:
+A modal that opens when the user clicks the “Website Freelancing” project card.
+
+Requirements:
+
+Display 3 cards:
+
+Dashboard
+
+Admin Panel
+
+Team Panel
+
+Each card clearly states:
+
+Purpose
+
+Access level
+
+Clicking a card routes the user to the respective page
+
+Popup has no business logic or data editing
+
+5.2 Dashboard Page (View-Only)
+
+Route:
+/projects/website-freelancing/dashboard
+
+Purpose:
+Provide a high-level financial and operational overview.
+
+Key Features:
+
+Total revenue
+
+Total received amount
+
+Total pending amount
+
+Cash vs online payment split
+
+Payment timeline chart
+
+Client/project-wise summary table
+
+Status indicators (active/completed)
+
+Rules:
+
+No editing
+
+No data entry
+
+Purely read-only
+
+5.3 Admin Panel (Full Control)
+
+Route:
+/projects/website-freelancing/admin
+
+Purpose:
+Central control hub for managing all freelancing operations.
+
+Core Capabilities
+A. Client Management
+
+Create new client projects
+
+Edit client details
+
+Assign team members
+
+Update project status
+
+B. Pricing & Cost Management
+
+Initial service cost
+
+Domain charged to client
+
+Actual domain cost
+
+Extra feature charges
+
+Extra production charges
+
+C. Client Payments
+
+Add payment entries
+
+View payment history
+
+Payment type (advance/mid/final)
+
+Payment mode (cash/online)
+
+D. Team Oversight
+
+View money given to team
+
+View money spent by team
+
+Balance per project
+
+E. Logs & Audit
+
+Track changes to pricing and payments
+
+Show who changed what and when
+
+Read-only audit trail
+
+UI Layout:
+
+Top bar: admin authority
+
+Left column: client list
+
+Center column: editable content (tabs)
+
+Right column: logs and quick stats
+
+5.4 Team Panel (Limited Control)
+
+Route:
+/projects/website-freelancing/team
+
+Purpose:
+Allow team members to log their financial activity without exposing sensitive data.
+
+Capabilities:
+
+Select assigned project
+
+Add ledger entry:
+
+Received
+
+Spent
+
+Provide date, amount, reason
+
+View personal transaction history
+
+Restrictions:
+
+Cannot create or edit clients
+
+Cannot see pricing or profit
+
+Cannot edit payments
+
+Cannot view dashboard
+
+6. Data & Backend Requirements
+Google Sheets
+
+Used as backend database only
+
+Not visible to end users
+
+Stores:
+
+Clients
+
+Costs
+
+Payments
+
+Team ledger
+
+Logs
+
+APIs
+
+Website communicates with Google Sheets via APIs
+
+Phase 0 uses API placeholders
+
+Real integration added later
+
+Authentication
+
+No Firebase or paid services
+
+Simple passcode-based access:
+
+Admin passcode
+
+Team passcode
+
+Passcodes validated before allowing write actions
+
+7. Design & UX Requirements
+Visual Style
+
+Dark, cinematic UI
+
+Glassmorphism cards
+
+Subtle gradients and glow
+
+Professional internal-tool feel
+
+UX Principles
+
+Clear separation of roles
+
+No hidden edit actions
+
+Admin power is explicit
+
+Team interface is constrained and safe
+
+Dashboard is calm and readable
+
+8. Non-Functional Requirements
+
+Responsive (desktop-first)
+
+Fast load time
+
+Minimal dependencies
+
+Easy to maintain
+
+Scalable for future phases
+
+9. Phase 0 Success Criteria
+
+Phase 0 is successful if:
+
+Admin can manage clients and finances without spreadsheets
+
+Team can log spending without accessing sensitive data
+
+Dashboard clearly shows business health
+
+No manual calculations are required
+
+System feels premium and reliable
+
+10. Future Considerations (Phase 1+)
+
+Authentication system
+
+Notifications
+
+Role-based permissions
+
+Multi-project aggregation dashboard
+
+Export reports (CSV/PDF)
+
+Advanced analytics
+
+One-Line Product Definition
+
+“A private internal website that gives founders full control over freelancing finances, clients, and team activity—without relying on spreadsheets.”

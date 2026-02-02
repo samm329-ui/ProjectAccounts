@@ -2,25 +2,21 @@
 
 import PasscodeProtect from '@/components/PasscodeProtect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, ArrowLeft, Bell, Settings, MoreVertical, Edit, Trash2, ChevronDown, Lock } from 'lucide-react';
+import { Search, Plus, ArrowLeft, Bell, Settings, ChevronDown, Lock, CheckCircle2, ShieldCheck, ArrowRight, Edit, Edit2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { getClients, getPayments, getLogs } from '@/lib/api';
+import { getClients, getPayments, getLogs, getTeamLedger, addClient } from '@/lib/api';
+import { ClientPayments } from './components/ClientPayments';
+import { TeamMoney } from './components/TeamMoney';
 import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function formatTimeAgo(timestamp: string) {
     const now = new Date();
@@ -38,32 +34,51 @@ function formatTimeAgo(timestamp: string) {
 const AdminPanel = () => {
     const [clients, setClients] = useState<any[]>([]);
     const [logs, setLogs] = useState<any[]>([]);
+    const [payments, setPayments] = useState<any[]>([]);
+    const [teamLedger, setTeamLedger] = useState<any[]>([]);
     const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    
+
     const [costs, setCosts] = useState<any>({});
-    
+
+    // Create Client State
+    const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
+    const [newClient, setNewClient] = useState({
+        clientName: '',
+        contact: '',
+        businessType: '',
+        serviceCost: '',
+        domainCharged: '0',
+    });
+    const [isSubmittingClient, setIsSubmittingClient] = useState(false);
+
     useEffect(() => {
-        async function fetchData() {
-            try {
-                const [clientsData, logsData] = await Promise.all([
-                    getClients(),
-                    getLogs(),
-                ]);
-                setClients(clientsData);
-                setLogs(logsData.sort((a:any, b:any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-                if (clientsData.length > 0) {
-                    setSelectedClientId(clientsData[0].clientId);
-                    setCosts(clientsData[0].costs);
-                }
-            } catch (error) {
-                console.error("Failed to fetch admin data", error)
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchData();
+        loadData();
     }, []);
+
+    async function loadData() {
+        try {
+            const [clientsData, logsData, paymentsData, ledgerData] = await Promise.all([
+                getClients(),
+                getLogs(),
+                getPayments(),
+                getTeamLedger('all'),
+            ]);
+            setClients(clientsData);
+            setLogs(logsData.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+            setPayments(paymentsData);
+            setTeamLedger(ledgerData);
+            if (clientsData.length > 0 && !selectedClientId) {
+                // Only default select if nothing selected
+                setSelectedClientId(clientsData[0].clientId);
+                setCosts(clientsData[0].costs);
+            }
+        } catch (error) {
+            console.error("Failed to fetch admin data", error)
+        } finally {
+            setLoading(false);
+        }
+    }
 
     const selectedClient = clients.find(c => c.clientId === selectedClientId);
 
@@ -71,196 +86,377 @@ const AdminPanel = () => {
         if (selectedClient) {
             setCosts(selectedClient.costs);
         }
-    }, [selectedClient]);
+    }, [selectedClient, clients]); // Update when clients refresh too
 
     const handleCostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setCosts((prev: any) => ({ ...prev, [name]: Number(value) || 0 }));
     }
 
+    const refreshData = async () => {
+        // Reloads payments/ledger for child components
+        const [paymentsData, ledgerData, clientsData] = await Promise.all([
+            getPayments(),
+            getTeamLedger('all'),
+            getClients(), // Also reload clients to get updated totals/list
+        ]);
+        setPayments(paymentsData);
+        setTeamLedger(ledgerData);
+        setClients(clientsData);
+    };
+
+    const handleCreateClient = async () => {
+        setIsSubmittingClient(true);
+        try {
+            const serviceCost = Number(newClient.serviceCost) || 0;
+            const domainCharged = Number(newClient.domainCharged) || 0;
+            const totalValue = serviceCost + domainCharged;
+
+            await addClient({
+                clientName: newClient.clientName,
+                contact: newClient.contact,
+                businessType: newClient.businessType,
+                startDate: new Date().toISOString().split('T')[0],
+                assignedMember: 'member_1', // Default
+                costs: {
+                    serviceCost,
+                    domainCharged,
+                    actualDomainCost: 0,
+                    extraFeatures: 0,
+                    extraProductionCharges: 0
+                },
+                financials: {
+                    totalValue,
+                    profit: totalValue
+                }
+            });
+            setIsCreateClientOpen(false);
+            setNewClient({ clientName: '', contact: '', businessType: '', serviceCost: '', domainCharged: '0' });
+            loadData(); // Full reload to show new client
+        } catch (error) {
+            console.error("Failed to create client", error);
+        } finally {
+            setIsSubmittingClient(false);
+        }
+    };
+
     if (loading) {
         return <div className="space-y-6">
-            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full bg-white/5" />
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                <Skeleton className="h-[600px] md:col-span-3" />
-                <Skeleton className="h-[600px] md:col-span-5" />
-                <Skeleton className="h-[600px] md:col-span-4" />
+                <Skeleton className="h-[600px] md:col-span-3 bg-white/5" />
+                <Skeleton className="h-[600px] md:col-span-5 bg-white/5" />
+                <Skeleton className="h-[600px] md:col-span-4 bg-white/5" />
             </div>
         </div>;
     }
 
-  return (
-    <div className="space-y-6">
-      {/* Top Bar */}
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/phases/0" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft size={16} />
-            Back to Phase 0
-          </Link>
-        </div>
-        <div className="text-center">
-            <h1 className="text-xl font-bold text-foreground">Website Freelancing</h1>
-            <p className="text-sm text-muted-foreground">Full control over clients, pricing, payments & team</p>
-        </div>
-        <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-                <Switch id="admin-mode" defaultChecked/>
-                <Label htmlFor="admin-mode" className="text-sm">Admin Mode: ON</Label>
-            </div>
-            <Button variant="ghost" size="icon"><Settings size={18}/></Button>
-            <Button variant="ghost" size="icon"><Bell size={18}/></Button>
-        </div>
-      </header>
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-        {/* Left Column - Clients */}
-        <div className="lg:col-span-3">
-            <Card className="bg-white/[.04] border-white/[.06] h-full flex flex-col">
-                <CardHeader>
-                    <CardTitle>Clients</CardTitle>
-                    <div className="relative mt-2">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search clients..." className="pl-10 bg-black/20 border-white/10" />
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-grow overflow-y-auto">
-                    <ul className="space-y-1">
-                       {clients.map(client => (
-                         <li key={client.clientId} 
-                            onClick={() => setSelectedClientId(client.clientId)}
-                            className={`p-3 rounded-md cursor-pointer transition-colors ${selectedClientId === client.clientId ? 'bg-white/10' : 'hover:bg-white/5'}`}>
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <p className="font-medium">{client.clientName}</p>
-                                    <p className="text-sm text-muted-foreground">{client.contact}</p>
-                                </div>
-                                <Badge variant={client.status === 'Active' ? 'default' : 'secondary'} className={`text-xs ${client.status === 'Active' ? 'bg-green-500/20 text-green-300 border-green-500/30' : 'bg-gray-500/20 text-gray-300 border-gray-500/30'}`}>{client.status}</Badge>
-                            </div>
-                         </li>
-                       ))}
-                    </ul>
-                </CardContent>
-                <div className="p-4 mt-auto">
-                    <Button className="w-full bg-gradient-to-r from-[#6B5DF9] to-[#5CE7F4] text-white">
-                        <Plus className="mr-2 h-4 w-4"/>
-                        Create Client
-                    </Button>
+    return (
+        <div className="space-y-6">
+            {/* Top Bar */}
+            <header className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <Link href="/phases/0" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                        <ArrowLeft size={16} />
+                        Back to Phase 0
+                    </Link>
                 </div>
-            </Card>
-        </div>
-        
-        {/* Center Column - Client Control */}
-        <div className="lg:col-span-5">
-            {selectedClient ? (
-                 <Card className="bg-white/[.04] border-white/[.06] h-full">
-                    <CardHeader className="flex flex-row justify-between items-start">
-                        <div>
-                            <CardTitle className="flex items-center gap-2">{selectedClient.clientName} <Badge variant="outline" className="text-green-300 border-green-300/50 text-xs">Active</Badge></CardTitle>
-                            <p className="text-sm text-muted-foreground mt-1">{selectedClient.contact}</p>
+                <div className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                        <h1 className="text-2xl font-bold text-foreground tracking-tight">Website Freelancing</h1>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Admin Panel</p>
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#7A5BFF]/10 border border-[#7A5BFF]/30 shadow-[0_0_10px_rgba(122,91,255,0.2)]">
+                        <div className="w-2 h-2 rounded-full bg-[#7A5BFF] shadow-[0_0_5px_#7A5BFF]"></div>
+                        <Label htmlFor="admin-mode" className="text-xs font-semibold text-[#7A5BFF]">Admin Mode: ON</Label>
+                    </div>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white"><Settings size={18} /></Button>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white"><Bell size={18} /></Button>
+                </div>
+            </header>
+
+            {/* Main Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+                {/* Left Column - Clients */}
+                <div className="lg:col-span-3 h-[calc(100vh-140px)] min-h-[600px]">
+                    <div className="panel h-full flex flex-col p-4 bg-gradient-to-b from-white/[0.03] to-transparent">
+                        <div className="mb-6">
+                            <h2 className="text-lg font-semibold mb-4">Clients</h2>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input placeholder="Search clients..." className="pl-10 bg-black/30 border-white/10 text-sm h-10 rounded-lg focus-visible:ring-[#7A5BFF]/50" />
+                            </div>
                         </div>
-                        <Button variant="ghost" size="sm" className="flex items-center gap-2">Client <ChevronDown size={16}/></Button>
-                    </CardHeader>
-                    <CardContent>
-                        <Tabs defaultValue="pricing">
-                            <TabsList className="grid w-full grid-cols-4 bg-black/20">
-                                <TabsTrigger value="overview">Overview</TabsTrigger>
-                                <TabsTrigger value="pricing">Pricing & Costs</TabsTrigger>
-                                <TabsTrigger value="payments">Client Payments</TabsTrigger>
-                                <TabsTrigger value="team">Team Money</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="overview" className="mt-6">
-                                <p className="text-muted-foreground">Overview content for {selectedClient.clientName}.</p>
-                            </TabsContent>
-                            <TabsContent value="pricing" className="mt-6">
-                                <div className="grid grid-cols-2 gap-8">
-                                    <div className="space-y-4">
-                                        {(Object.keys(costs || {}) as (keyof typeof costs)[]).map((key) => (
-                                             <div key={key} className="space-y-2">
-                                                <Label htmlFor={key.toString()} className="text-sm capitalize text-muted-foreground">{key.toString().replace(/([A-Z])/g, ' $1').trim()}</Label>
-                                                <div className="relative">
-                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
-                                                     <Input id={key.toString()} name={key.toString()} type="number" value={costs[key]} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-7"/>
-                                                </div>
-                                             </div>
-                                        ))}
-                                        <div className="flex gap-4 pt-4">
-                                            <Button className="w-full bg-gradient-to-r from-[#6B5DF9] to-[#5CE7F4] text-white">Save Changes</Button>
-                                            <Button variant="outline" className="w-full">Reset</Button>
+                        <div className="flex-grow overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                            {clients.map(client => (
+                                <div key={client.clientId}
+                                    onClick={() => setSelectedClientId(client.clientId)}
+                                    className={`p-4 rounded-xl cursor-pointer transition-all border ${selectedClientId === client.clientId ? 'bg-white/[0.08] border-white/10 shadow-lg' : 'bg-transparent border-transparent hover:bg-white/[0.03]'}`}>
+                                    <div className="flex justify-between items-start mb-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`w-2 h-2 rounded-full ${client.status === 'Active' ? 'bg-[#23D07A] shadow-[0_0_5px_#23D07A]' : 'bg-purple-400'}`}></span>
+                                            <p className="font-semibold text-sm">{client.clientName}</p>
+                                        </div>
+                                        {client.status === 'Active' && <Badge className="bg-[#23D07A]/10 text-[#23D07A] border border-[#23D07A]/20 text-[10px] px-2 py-0 h-5">Active</Badge>}
+                                        {client.status === 'Completed' && <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5">Completed</Badge>}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground pl-4">{client.contact}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="pt-4 mt-auto">
+                            <Dialog open={isCreateClientOpen} onOpenChange={setIsCreateClientOpen}>
+                                <DialogTrigger asChild>
+                                    <Button className="w-full btn-primary">
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Create Client
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="bg-[#0B0710] border-white/10 text-foreground sm:max-w-[425px]">
+                                    <DialogHeader>
+                                        <DialogTitle>Add New Client</DialogTitle>
+                                        <DialogDescription>
+                                            Enter details for the new website client.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="name" className="text-right">Name</Label>
+                                            <Input
+                                                id="name"
+                                                value={newClient.clientName}
+                                                onChange={e => setNewClient({ ...newClient, clientName: e.target.value })}
+                                                className="col-span-3 bg-white/5 border-white/10"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="contact" className="text-right">Contact</Label>
+                                            <Input
+                                                id="contact"
+                                                value={newClient.contact}
+                                                onChange={e => setNewClient({ ...newClient, contact: e.target.value })}
+                                                className="col-span-3 bg-white/5 border-white/10"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="type" className="text-right">Type</Label>
+                                            <Input
+                                                id="type"
+                                                placeholder="e.g. Portfolio"
+                                                value={newClient.businessType}
+                                                onChange={e => setNewClient({ ...newClient, businessType: e.target.value })}
+                                                className="col-span-3 bg-white/5 border-white/10"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-4 items-center gap-4">
+                                            <Label htmlFor="cost" className="text-right">Service Cost</Label>
+                                            <Input
+                                                id="cost"
+                                                type="number"
+                                                value={newClient.serviceCost}
+                                                onChange={e => setNewClient({ ...newClient, serviceCost: e.target.value })}
+                                                className="col-span-3 bg-white/5 border-white/10"
+                                            />
                                         </div>
                                     </div>
-                                    <div className="space-y-3 rounded-lg bg-black/20 p-4 border border-white/10">
-                                        <div className="flex justify-between items-center"><span className="text-muted-foreground">Total Value</span> <span className="font-semibold text-foreground">₹{selectedClient.financials.totalValue.toLocaleString()}</span></div>
-                                        <div className="flex justify-between items-center"><span className="text-muted-foreground">Paid</span> <span className="font-semibold text-green-400">₹{selectedClient.financials.paid.toLocaleString()}</span></div>
-                                        <div className="flex justify-between items-center"><span className="text-muted-foreground">Pending</span> <span className="font-semibold text-amber-400">₹{selectedClient.financials.pending.toLocaleString()}</span></div>
-                                        <div className="w-full h-px bg-white/10 my-2"></div>
-                                        <div className="flex justify-between items-center"><span className="text-muted-foreground">Profit</span> <span className="font-bold text-foreground">₹{selectedClient.financials.profit.toLocaleString()}</span></div>
-                                        <Button variant="ghost" size="sm" className="w-full mt-4 text-muted-foreground"><Edit size={14} className="mr-2"/>Edit Client Info</Button>
-                                    </div>
-                                </div>
-                            </TabsContent>
-                            <TabsContent value="payments" className="mt-6">
-                                <p className="text-muted-foreground">Payment records for {selectedClient.clientName}.</p>
-                            </TabsContent>
-                            <TabsContent value="team" className="mt-6">
-                                <p className="text-muted-foreground">Team ledger for {selectedClient.clientName}.</p>
-                            </TabsContent>
-                        </Tabs>
-                    </CardContent>
-                 </Card>
-            ) : (
-                <Card className="bg-white/[.04] border-white/[.06] h-full flex items-center justify-center">
-                    <p className="text-muted-foreground">Select a client to manage details.</p>
-                </Card>
-            )}
-        </div>
-
-        {/* Right Column - Oversight */}
-        <div className="lg:col-span-4 space-y-6">
-            <Card className="bg-white/[.04] border-white/[.06]">
-                <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                     <ul className="space-y-4">
-                       {logs.slice(0, 3).map(log => (
-                         <li key={log.logId} className="flex items-start gap-3 text-sm">
-                             <span className="h-2 w-2 rounded-full bg-primary mt-1.5"></span>
-                             <div>
-                                <p className="text-foreground">{log.action}</p>
-                                {log.details.from && <p className="text-muted-foreground">from ₹{log.details.from.toLocaleString()} to ₹{log.details.to.toLocaleString()}</p>}
-                                {log.details.amount && <p className="text-muted-foreground">of ₹{log.details.amount.toLocaleString()} ({log.details.mode})</p>}
-                                <p className="text-xs text-muted-foreground/50 mt-1">{log.actor} • {formatTimeAgo(log.timestamp)}</p>
-                             </div>
-                         </li>
-                       ))}
-                    </ul>
-                     <Button variant="link" className="text-primary p-0 h-auto mt-4">View All →</Button>
-                </CardContent>
-            </Card>
-            <Card className="bg-white/[.04] border-white/[.06]">
-                <CardContent className="pt-6">
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center"><span className="text-muted-foreground">Total Value</span> <span className="font-semibold text-foreground text-lg">₹{clients.reduce((acc, c) => acc + c.financials.totalValue, 0).toLocaleString()}</span></div>
-                        <div className="flex justify-between items-center"><span className="text-muted-foreground">Total Profit</span> <span className="font-semibold text-foreground text-lg">₹{clients.reduce((acc, c) => acc + c.financials.profit, 0).toLocaleString()}</span></div>
-                         <div className="flex justify-between items-center">
-                             <span className="text-muted-foreground">Risk Low</span> 
-                             <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="border-green-400/50 text-green-400 text-xs">Healthy</Badge>
-                                <Lock size={14} className="text-muted-foreground"/>
-                             </div>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setIsCreateClientOpen(false)} className="border-white/10 hover:bg-white/5 hover:text-white">Cancel</Button>
+                                        <Button onClick={handleCreateClient} disabled={isSubmittingClient || !newClient.clientName} className="btn-primary">
+                                            {isSubmittingClient ? 'Creating...' : 'Create Client'}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         </div>
                     </div>
-                     <Button variant="link" className="text-primary p-0 h-auto mt-4">VIEW All Logs →</Button>
-                </CardContent>
-            </Card>
-        </div>
+                </div>
 
-      </div>
-    </div>
-  );
+                {/* Center Column - Client Control */}
+                <div className="lg:col-span-5 h-[calc(100vh-140px)] min-h-[600px]">
+                    {selectedClient ? (
+                        <div className="panel h-full flex flex-col p-6 relative overflow-hidden">
+                            {/* Background Glow */}
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-[#7A5BFF]/5 blur-3xl pointer-events-none"></div>
+
+                            <div className="flex flex-row justify-between items-start mb-8 relative z-10">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h2 className="text-2xl font-bold tracking-tight">{selectedClient.clientName}</h2>
+                                        <CheckCircle2 size={18} className="text-[#23D07A]" fill="rgba(35, 208, 122, 0.1)" />
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">{selectedClient.contact}</p>
+                                </div>
+                                <Button variant="outline" size="sm" className="rounded-full h-8 px-4 border-white/10 bg-white/5 hover:bg-white/10 text-xs">
+                                    <Edit className="w-3 h-3 mr-2" /> Client
+                                </Button>
+                            </div>
+
+                            <Tabs defaultValue="pricing" className="flex-grow flex flex-col">
+                                <TabsList className="w-full bg-black/30 border border-white/5 p-1 rounded-xl grid grid-cols-4 mb-6">
+                                    <TabsTrigger value="overview" className="rounded-lg text-xs">Overview</TabsTrigger>
+                                    <TabsTrigger value="pricing" className="rounded-lg text-xs data-[state=active]:bg-[#7A5BFF] data-[state=active]:text-white">Pricing & Costs</TabsTrigger>
+                                    <TabsTrigger value="payments" className="rounded-lg text-xs">Client Payments</TabsTrigger>
+                                    <TabsTrigger value="team" className="rounded-lg text-xs">Team Money</TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="overview" className="mt-0 flex-grow">
+                                    <div className="flex items-center justify-center h-full text-muted-foreground">Overview content placeholder</div>
+                                </TabsContent>
+
+                                <TabsContent value="pricing" className="mt-0 flex-grow">
+                                    <div className="grid grid-cols-12 gap-6 h-full">
+                                        <div className="col-span-7 space-y-5">
+                                            <div className="space-y-1">
+                                                <Label className="text-xs text-muted-foreground ml-1">Service Cost</Label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
+                                                    <Input name="serviceCost" type="number" value={costs.serviceCost || 0} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-xs text-muted-foreground ml-1">Domain Charged</Label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
+                                                    <Input name="domainCharged" type="number" value={costs.domainCharged || 0} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-xs text-muted-foreground ml-1">Actual Domain Cost</Label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
+                                                    <Input name="actualDomainCost" type="number" value={costs.actualDomainCost || 0} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-xs text-muted-foreground ml-1">Extra Features</Label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
+                                                    <Input name="extraFeatures" type="number" value={costs.extraFeatures || 0} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-xs text-muted-foreground ml-1">Extra Production Charges</Label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
+                                                    <Input name="extraProductionCharges" type="number" value={costs.extraProductionCharges || 0} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-3 pt-4">
+                                                <Button className="flex-1 btn-primary text-sm">Save Changes</Button>
+                                                <Button variant="outline" className="flex-1 bg-white/5 border-white/10 text-muted hover:text-white h-[44px] rounded-xl text-sm">Reset</Button>
+                                            </div>
+                                        </div>
+
+                                        <div className="col-span-5">
+                                            <div className="bg-black/30 border border-white/10 rounded-2xl p-5 space-y-4">
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-muted-foreground">Total Value</span>
+                                                    <span className="font-bold text-white">₹{selectedClient.financials.totalValue.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-muted-foreground">Paid</span>
+                                                    <span className="font-bold text-[#4FD1FF]">₹{selectedClient.financials.paid.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-muted-foreground">Pending</span>
+                                                    <span className="font-bold text-[#FFB86B]">₹{selectedClient.financials.pending.toLocaleString()}</span>
+                                                </div>
+                                                <div className="w-full h-px bg-white/10 my-2"></div>
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-muted-foreground">Profit</span>
+                                                    <span className="font-bold text-[#23D07A] text-lg">₹{selectedClient.financials.profit.toLocaleString()}</span>
+                                                </div>
+
+                                                <Button variant="ghost" size="sm" className="w-full mt-2 text-xs text-muted-foreground hover:text-white flex items-center justify-center gap-1">
+                                                    <Edit2 size={12} /> Edit Client info
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="payments" className="mt-0 flex-grow">
+                                    <ClientPayments
+                                        clientId={selectedClient.clientId}
+                                        payments={payments}
+                                        onPaymentAdded={refreshData}
+                                    />
+                                </TabsContent>
+
+                                <TabsContent value="team" className="mt-0 flex-grow">
+                                    <TeamMoney
+                                        clientId={selectedClient.clientId}
+                                        teamLedger={teamLedger}
+                                        onEntryAdded={refreshData}
+                                    />
+                                </TabsContent>
+                            </Tabs>
+                        </div>
+                    ) : (
+                        <div className="panel h-full flex items-center justify-center">
+                            <p className="text-muted-foreground">Select a client to manage details.</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Right Column - Oversight */}
+                <div className="lg:col-span-4 h-[calc(100vh-140px)] flex flex-col gap-6">
+                    <div className="panel flex-grow flex flex-col relative overflow-hidden">
+                        <h2 className="text-lg font-semibold mb-6">Recent Activity</h2>
+                        <ul className="space-y-6 relative z-10">
+                            {logs.slice(0, 4).map((log, i) => (
+                                <li key={log.logId} className="flex gap-4">
+                                    <div className="mt-1.5 min-w-[8px]">
+                                        <div className="w-2 h-2 rounded-full bg-[#FFB86B] shadow-[0_0_6px_#FFB86B]"></div>
+                                        {i !== logs.slice(0, 4).length - 1 && <div className="w-px h-full bg-white/5 mx-auto mt-2"></div>}
+                                    </div>
+                                    <div className="pb-2">
+                                        <p className="text-sm font-medium text-white mb-0.5">{log.action}</p>
+                                        <p className="text-xs text-muted-foreground mb-1">{log.details.from ? `Changed from ₹${log.details.from} to ₹${log.details.to}` : (log.details.amount ? `₹${log.details.amount} (${log.details.mode})` : '')}</p>
+                                        <p className="text-[10px] text-muted-foreground/50">{log.actor} • {formatTimeAgo(log.timestamp)}</p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                        <Button variant="link" className="text-[#7A5BFF] hover:text-[#4FD1FF] p-0 h-auto mt-auto self-start text-xs flex items-center gap-1">
+                            View All <ArrowRight size={12} />
+                        </Button>
+                    </div>
+
+                    <div className="panel p-6 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <ShieldCheck size={80} />
+                        </div>
+                        <div className="space-y-4 relative z-10">
+                            <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground text-sm">Total Value</span>
+                                <span className="font-bold text-white text-lg">₹{clients.reduce((acc, c) => acc + c.financials.totalValue, 0).toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground text-sm">Total Profit</span>
+                                <span className="font-bold text-white text-lg">₹{clients.reduce((acc, c) => acc + c.financials.profit, 0).toLocaleString()}</span>
+                            </div>
+                            <div className="w-full h-px bg-white/5"></div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground text-sm">Risk Low</span>
+                                <div className="w-8 h-8 rounded-full bg-[#23D07A]/10 flex items-center justify-center border border-[#23D07A]/20 text-[#23D07A]">
+                                    <Lock size={14} />
+                                </div>
+                            </div>
+                        </div>
+                        <Button variant="link" className="text-[#7A5BFF] hover:text-[#4FD1FF] p-0 h-auto mt-6 text-xs flex items-center gap-1">
+                            View All Logs <ArrowRight size={12} />
+                        </Button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    );
 };
 
 export default function AdminPage() {
@@ -271,7 +467,7 @@ export default function AdminPage() {
             title="Admin Access Required"
             description="Please enter the administrator passcode to manage project settings."
         >
-            <AdminPanel/>
+            <AdminPanel />
         </PasscodeProtect>
     )
 }

@@ -4,31 +4,45 @@
 
 @layer base {
   :root {
-    --background: 0 0% 2%; /* #050505 */
-    --foreground: 223 44% 94%; /* #E8EDF7 */
-    --card: 228 6% 10%;
-    --card-foreground: 223 44% 94%;
-    --popover: 228 6% 4%;
-    --popover-foreground: 223 44% 94%;
-    --primary: 273 100% 69%; /* #BE62FF */
+    --bg: #0B0710;
+    --accent-start: #7A5BFF;
+    --accent-end: #4FD1FF;
+    --success: #23D07A;
+    --amber: #FFB86B;
+    --text: #F4F6FA;
+    --muted: #BFC4D6;
+    --glass-border: rgba(255,255,255,0.06);
+    --panel-radius: 14px;
+    --panel-pad: 24px;
+
+    /* Maintain compatibility with shadcn/ui but map to new theme where possible */
+    --background: 267 18% 5%; /* #0B0710 converted to HSL approx */
+    --foreground: 220 27% 97%; /* #F4F6FA */
+    --card: 267 18% 7%; /* Slightly lighter than bg */
+    --card-foreground: 220 27% 97%;
+    --popover: 267 18% 7%;
+    --popover-foreground: 220 27% 97%;
+    --primary: 251 100% 68%; /* #7A5BFF */
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 14.9%;
+    --secondary: 267 18% 15%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 223 23% 72%; /* #AAB3C7 */
-    --accent: 194 100% 69%; /* #62DAFF */
+    --muted: 229 18% 80%; /* #BFC4D6 base */
+    --muted-foreground: 229 18% 60%;
+    --accent: 196 100% 65%; /* #4FD1FF */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 100%; /* Used with opacity, e.g., border-border/10 */
-    --input: 0 0% 14.9%;
-    --ring: 273 100% 69%;
+    --border: 0 0% 100%;
+    --input: 267 18% 15%;
+    --ring: 251 100% 68%;
+    --radius: 0.5rem;
+    
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --radius: 0.5rem;
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -40,52 +54,94 @@
   }
 
   .dark {
-    --background: 0 0% 2%; /* #050505 */
-    --foreground: 223 44% 94%; /* #E8EDF7 */
-    --card: 228 6% 10%;
-    --card-foreground: 223 44% 94%;
-    --popover: 228 6% 4%;
-    --popover-foreground: 223 44% 94%;
-    --primary: 273 100% 69%; /* #BE62FF */
+    /* Same as root for now as this is a dark-only UI */
+    --background: 267 18% 5%;
+    --foreground: 220 27% 97%;
+    --card: 267 18% 7%;
+    --card-foreground: 220 27% 97%;
+    --popover: 267 18% 7%;
+    --popover-foreground: 220 27% 97%;
+    --primary: 251 100% 68%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 14.9%;
+    --secondary: 267 18% 15%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 223 23% 72%; /* #AAB3C7 */
-    --accent: 194 100% 69%; /* #62DAFF */
+    --muted: 229 18% 80%;
+    --muted-foreground: 229 18% 60%;
+    --accent: 196 100% 65%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 100%;
-    --input: 0 0% 14.9%;
-    --ring: 273 100% 69%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --input: 267 18% 15%;
+    --ring: 251 100% 68%;
   }
 }
 
 @layer base {
   * {
-    @apply border-border/20;
+    @apply border-border/10;
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    background-image: radial-gradient(circle at 50% 0%, #2B1630 0%, transparent 40%),
+                      radial-gradient(circle at 80% 20%, rgba(122, 91, 255, 0.08) 0%, transparent 30%);
+    background-attachment: fixed;
   }
-  .custom-bg {
-    background-image: radial-gradient(circle at top, rgba(255, 255, 255, 0.05), transparent 40%),
-      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    background-size: 100% 100%, 40px 40px, 40px 40px;
+}
+
+/* Custom Design System Components */
+@layer components {
+  /* Glass panel */
+  .panel {
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--panel-radius);
+    padding: var(--panel-pad);
+    backdrop-filter: blur(10px) saturate(140%);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  }
+
+  /* Primary button */
+  .btn-primary {
+    height: 44px; 
+    padding: 0 20px; 
+    border-radius: 10px;
+    background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+    font-weight: 600; 
+    color: white;
+    box-shadow: 0 6px 18px rgba(122,91,255,0.12), inset 0 -2px 6px rgba(0,0,0,0.25);
+    transition: all 0.2s;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 8px 24px rgba(122,91,255,0.25), inset 0 -2px 6px rgba(0,0,0,0.25);
+    transform: translateY(-1px);
+  }
+
+  /* Status chip */
+  .chip { 
+    padding: 6px 12px; 
+    border-radius: 999px; 
+    font-size: 13px; 
+    font-weight: 500;
+  }
+
+  .chip-active { 
+    background: linear-gradient(90deg, rgba(35, 208, 122, 0.15), rgba(35, 208, 122, 0.25)); 
+    color: #23D07A; 
+    border: 1px solid rgba(35, 208, 122, 0.2);
+  }
+  
+  .chip-delivered { 
+    background: linear-gradient(90deg, rgba(122, 91, 255, 0.15), rgba(79, 209, 255, 0.15)); 
+    color: #F4F6FA; 
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Small text */
+  .text-muted-custom { 
+    color: var(--muted); 
+    font-size: 13px; 
   }
 }
