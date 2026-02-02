@@ -235,3 +235,77 @@ export async function addClient(client: any) {
         return { success: false };
     }
 }
+
+export async function seedDatabase() {
+    const doc = await getDoc();
+    if (!doc) return { success: false, message: "Not connected to Google Sheets" };
+
+    try {
+        // Clear and Seed Clients
+        const clientsSheet = doc.sheetsByTitle[SHEETS.CLIENTS];
+        const currentClients = await clientsSheet.getRows();
+        if (currentClients.length === 0) {
+            for (const client of mockData.clients) {
+                await clientsSheet.addRow({
+                    clientId: client.clientId,
+                    clientName: client.clientName,
+                    contact: client.contact,
+                    businessType: client.businessType,
+                    startDate: client.startDate,
+                    assignedMember: client.assignedMember,
+                    status: client.status,
+                    serviceCost: client.costs.serviceCost,
+                    domainCharged: client.costs.domainCharged,
+                    actualDomainCost: client.costs.actualDomainCost,
+                    extraFeatures: client.costs.extraFeatures,
+                    extraProductionCharges: client.costs.extraProductionCharges,
+                    totalValue: client.financials.totalValue,
+                    paid: client.financials.paid,
+                    pending: client.financials.pending,
+                    profit: client.financials.profit
+                });
+            }
+        }
+
+        // Seed Payments
+        const paymentsSheet = doc.sheetsByTitle[SHEETS.PAYMENTS];
+        const currentPayments = await paymentsSheet.getRows();
+        if (currentPayments.length === 0) {
+            for (const p of mockData.payments) {
+                await paymentsSheet.addRow({
+                    paymentId: p.paymentId,
+                    projectId: p.projectId,
+                    clientId: p.clientId,
+                    date: p.date,
+                    amount: p.amount,
+                    type: p.type,
+                    mode: p.mode,
+                    recordedBy: p.recordedBy
+                });
+            }
+        }
+
+        // Seed Ledger
+        const ledgerSheet = doc.sheetsByTitle[SHEETS.LEDGER];
+        const currentLedger = await ledgerSheet.getRows();
+        if (currentLedger.length === 0) {
+            for (const p of mockData.teamLedger) {
+                await ledgerSheet.addRow({
+                    entryId: p.entryId,
+                    memberId: p.memberId,
+                    clientId: p.clientId,
+                    date: p.date,
+                    amount: p.amount,
+                    type: p.type,
+                    reason: p.reason,
+                    by: p.by
+                });
+            }
+        }
+
+        return { success: true, message: "Database seeded successfully" };
+    } catch (e) {
+        console.error("Seeding Failed:", e);
+        return { success: false, message: "Failed to seed database" };
+    }
+}

@@ -207,7 +207,7 @@ const AdminPanel = () => {
                                 </div>
                             ))}
                         </div>
-                        <div className="pt-4 mt-auto">
+                        <div className="pt-4 mt-auto space-y-2">
                             <Dialog open={isCreateClientOpen} onOpenChange={setIsCreateClientOpen}>
                                 <DialogTrigger asChild>
                                     <Button className="w-full btn-primary">
@@ -270,6 +270,17 @@ const AdminPanel = () => {
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
+
+                            {clients.length === 0 && (
+                                <Button variant="outline" onClick={async () => {
+                                    if (confirm("Upload test data to Google Sheet?")) {
+                                        await import('@/lib/api').then(m => m.seedDatabase());
+                                        window.location.reload();
+                                    }
+                                }} className="w-full border-dashed border-white/20 text-muted-foreground hover:text-white hover:bg-white/5">
+                                    Upload Test Data
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>
