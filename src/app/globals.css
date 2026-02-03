@@ -88,6 +88,7 @@
     background-image: radial-gradient(circle at 50% 0%, #2B1630 0%, transparent 40%),
                       radial-gradient(circle at 80% 20%, rgba(122, 91, 255, 0.08) 0%, transparent 30%);
     background-attachment: fixed;
+    overflow-x: hidden;
   }
 }
 

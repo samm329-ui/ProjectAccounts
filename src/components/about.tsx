@@ -23,13 +23,13 @@ export function About() {
     <section
       id="about"
       aria-labelledby="about-heading"
-      className="relative py-24 md:py-32 overflow-hidden"
+      className="relative py-24 md:py-32 overflow-hidden w-full max-w-[100vw] overflow-x-hidden"
     >
       {/* Background Radial Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-violet-600/5 blur-[160px] pointer-events-none" />
 
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="grid grid-cols-1 gap-16 lg:grid-cols-2 lg:items-center">
+      <div className="mx-auto max-w-7xl px-6 w-full">
+        <div className="grid grid-cols-1 gap-16 lg:grid-cols-2 lg:items-center w-full">
 
           {/* LEFT: Text Content - Authority & Clarity */}
           <div className="flex flex-col space-y-8">
@@ -95,11 +95,14 @@ export function About() {
             className="relative lg:pl-12"
           >
             {/* Chart Card */}
-            <div className="relative rounded-[2.5rem] bg-[#0A0A0F]/80 border border-white/[0.08] shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-3xl overflow-hidden p-8 md:p-12">
+            <div
+              className="relative rounded-[2.5rem] bg-[#0A0A0F]/80 border border-white/[0.08] shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-3xl p-8 md:p-12 w-full"
+              style={{ width: '561.6px', left: '-57px', top: '7px' }}
+            >
 
-              <div className="flex flex-col md:flex-row gap-12 items-center">
+              <div className="flex flex-col md:flex-row gap-12 items-center w-full">
                 {/* Donut Chart Container */}
-                <div className="relative w-[280px] h-[280px] flex-shrink-0">
+                <div className="relative w-full max-w-[280px] h-[280px] flex-shrink-0 mx-auto md:mx-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
