@@ -23,6 +23,17 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -129,6 +140,7 @@ const AdminPanelContent = () => {
     // Dialog States
     const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
     const [isEditClientOpen, setIsEditClientOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     // Form States
     const [newClient, setNewClient] = useState({
@@ -295,6 +307,17 @@ const AdminPanelContent = () => {
         }
     };
 
+    const handleDeleteClient = async () => {
+        if (!selectedClient) return;
+        try {
+            await storeDeleteClient(selectedClient.clientId);
+            toast({ title: "Client Deleted", description: "Project has been removed." });
+            setSelectedClientId(clients[0]?.clientId || null);
+        } catch (error) {
+            toast({ title: "Error", description: "Failed to delete client.", variant: "destructive" });
+        }
+    };
+
     // Derived Finance Logic
     const storedFinance = selectedClient ? clientFinances.get(selectedClient.clientId) : null;
     const finance = storedFinance || {
@@ -415,22 +438,25 @@ const AdminPanelContent = () => {
                                                 </SelectContent>
                                             </Select>
 
-                                            <Dialog open={isEditClientOpen} onOpenChange={setIsEditClientOpen}>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="outline" size="sm" className="bg-white/[0.02] border-white/10 text-[#9A9AA6] rounded-xl text-xs h-9">
-                                                        <Edit2 size={12} className="mr-2" /> EDIT INFO
+                                            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="outline" size="sm" className="bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-xs h-9">
+                                                        <Trash2 size={12} className="mr-2" /> DELETE CLIENT
                                                     </Button>
-                                                </DialogTrigger>
-                                                <DialogContent className="bg-[#14121E] border-white/10 text-white">
-                                                    <DialogHeader><DialogTitle>Edit Details</DialogTitle></DialogHeader>
-                                                    <div className="space-y-4 py-4">
-                                                        <div className="grid gap-2"><Label>Project Name</Label><Input className="bg-white/5 border-white/10" value={editClientForm.clientName} onChange={e => setEditClientForm({ ...editClientForm, clientName: e.target.value })} /></div>
-                                                        <div className="grid gap-2"><Label>Contact Info</Label><Input className="bg-white/5 border-white/10" value={editClientForm.contact} onChange={e => setEditClientForm({ ...editClientForm, contact: e.target.value })} /></div>
-                                                        <div className="grid gap-2"><Label>Business Brand</Label><Input className="bg-white/5 border-white/10" value={editClientForm.businessType} onChange={e => setEditClientForm({ ...editClientForm, businessType: e.target.value })} /></div>
-                                                    </div>
-                                                    <DialogFooter><Button onClick={handleEditClientSubmit} className="bg-[#6E6AF6]">Save Changes</Button></DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent className="bg-[#14121E] border-white/10 text-white">
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription className="text-[#9A9AA6]">
+                                                            This action cannot be undone. This will permanently delete the client and all associated data from the sheets.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel className="bg-white/5 border-white/10 text-white hover:bg-white/10">Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={handleDeleteClient} className="bg-red-600 hover:bg-red-700 text-white border-none">Delete Client</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         </div>
                                     </div>
                                 </div>

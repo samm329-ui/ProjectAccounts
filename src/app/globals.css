@@ -11,24 +11,30 @@
     --amber: #FFB86B;
     --text: #F4F6FA;
     --muted: #BFC4D6;
-    --glass-border: rgba(255,255,255,0.06);
+    --glass-border: rgba(255, 255, 255, 0.06);
     --panel-radius: 14px;
     --panel-pad: 24px;
 
     /* Maintain compatibility with shadcn/ui but map to new theme where possible */
-    --background: 267 18% 5%; /* #0B0710 converted to HSL approx */
-    --foreground: 220 27% 97%; /* #F4F6FA */
-    --card: 267 18% 7%; /* Slightly lighter than bg */
+    --background: 267 18% 5%;
+    /* #0B0710 converted to HSL approx */
+    --foreground: 220 27% 97%;
+    /* #F4F6FA */
+    --card: 267 18% 7%;
+    /* Slightly lighter than bg */
     --card-foreground: 220 27% 97%;
     --popover: 267 18% 7%;
     --popover-foreground: 220 27% 97%;
-    --primary: 251 100% 68%; /* #7A5BFF */
+    --primary: 251 100% 68%;
+    /* #7A5BFF */
     --primary-foreground: 0 0% 100%;
     --secondary: 267 18% 15%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 229 18% 80%; /* #BFC4D6 base */
+    --muted: 229 18% 80%;
+    /* #BFC4D6 base */
     --muted-foreground: 229 18% 60%;
-    --accent: 196 100% 65%; /* #4FD1FF */
+    --accent: 196 100% 65%;
+    /* #4FD1FF */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
@@ -36,7 +42,7 @@
     --input: 267 18% 15%;
     --ring: 251 100% 68%;
     --radius: 0.5rem;
-    
+
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -81,68 +87,92 @@
   * {
     @apply border-border/10;
   }
+
   body {
     background-color: var(--bg);
     color: var(--text);
     font-family: 'Inter', sans-serif;
     background-image: radial-gradient(circle at 50% 0%, #2B1630 0%, transparent 40%),
-                      radial-gradient(circle at 80% 20%, rgba(122, 91, 255, 0.08) 0%, transparent 30%);
+      radial-gradient(circle at 80% 20%, rgba(122, 91, 255, 0.08) 0%, transparent 30%);
     background-attachment: fixed;
     overflow-x: hidden;
+    width: 100%;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Fix mobile zooming and flickering */
+@media (max-width: 768px) {
+
+  html,
+  body {
+    height: 100%;
+    overscroll-behavior-y: none;
+  }
+
+  * {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
 }
 
 /* Custom Design System Components */
 @layer components {
+
   /* Glass panel */
   .panel {
-    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.06));
     border: 1px solid var(--glass-border);
     border-radius: var(--panel-radius);
     padding: var(--panel-pad);
     backdrop-filter: blur(10px) saturate(140%);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   }
 
   /* Primary button */
   .btn-primary {
-    height: 44px; 
-    padding: 0 20px; 
+    height: 44px;
+    padding: 0 20px;
     border-radius: 10px;
     background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
-    font-weight: 600; 
+    font-weight: 600;
     color: white;
-    box-shadow: 0 6px 18px rgba(122,91,255,0.12), inset 0 -2px 6px rgba(0,0,0,0.25);
+    box-shadow: 0 6px 18px rgba(122, 91, 255, 0.12), inset 0 -2px 6px rgba(0, 0, 0, 0.25);
     transition: all 0.2s;
   }
+
   .btn-primary:hover {
-    box-shadow: 0 8px 24px rgba(122,91,255,0.25), inset 0 -2px 6px rgba(0,0,0,0.25);
+    box-shadow: 0 8px 24px rgba(122, 91, 255, 0.25), inset 0 -2px 6px rgba(0, 0, 0, 0.25);
     transform: translateY(-1px);
   }
 
   /* Status chip */
-  .chip { 
-    padding: 6px 12px; 
-    border-radius: 999px; 
-    font-size: 13px; 
+  .chip {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 13px;
     font-weight: 500;
   }
 
-  .chip-active { 
-    background: linear-gradient(90deg, rgba(35, 208, 122, 0.15), rgba(35, 208, 122, 0.25)); 
-    color: #23D07A; 
+  .chip-active {
+    background: linear-gradient(90deg, rgba(35, 208, 122, 0.15), rgba(35, 208, 122, 0.25));
+    color: #23D07A;
     border: 1px solid rgba(35, 208, 122, 0.2);
   }
-  
-  .chip-delivered { 
-    background: linear-gradient(90deg, rgba(122, 91, 255, 0.15), rgba(79, 209, 255, 0.15)); 
-    color: #F4F6FA; 
+
+  .chip-delivered {
+    background: linear-gradient(90deg, rgba(122, 91, 255, 0.15), rgba(79, 209, 255, 0.15));
+    color: #F4F6FA;
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   /* Small text */
-  .text-muted-custom { 
-    color: var(--muted); 
-    font-size: 13px; 
+  .text-muted-custom {
+    color: var(--muted);
+    font-size: 13px;
   }
 }

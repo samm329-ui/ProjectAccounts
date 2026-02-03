@@ -2,8 +2,15 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CanvasScrollHero',
-  description: 'A cinematic, scroll-driven hero section built with Next.js, Framer Motion, and HTML5 Canvas.',
+  title: 'Project Accounts',
+  description: 'A premium, secure financial management dashboard for project tracking.',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
+  themeColor: '#0B0710',
 };
 
 export default function RootLayout({

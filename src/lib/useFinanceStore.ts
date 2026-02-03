@@ -10,22 +10,13 @@
  * - NO direct API calls from components (use store methods)
  */
 
+// lib/useFinanceStore.ts
+
+// No direct imports from ./api for data fetching
 import { useState, useEffect, useCallback } from 'react';
-import {
-    getClients,
-    getPayments,
-    getLogs,
-    getTeamLedger,
-    addClient as apiAddClient,
-    addPayment as apiAddPayment,
-    addTeamLedgerEntry as apiAddTeamLedgerEntry,
-    updateClientPricing as apiUpdateClientPricing,
-    updateClientStatus as apiUpdateClientStatus,
-    deleteClient as apiDeleteClient,
-    addLog as apiAddLog
-} from './api';
 import { calculateFinance, calculateGlobalFinance, Client, Payment, LedgerEntry, FinanceResult } from './finance';
 import { validateFinance, logValidationIssues } from './financeValidator';
+
 
 // ============================================================================
 // TYPES
@@ -115,10 +106,10 @@ export function useFinanceStore() {
 
             // === LAYER 5: FETCH RAW DATA ===
             const [clientsData, paymentsData, teamLedgerData, logsData] = await Promise.all([
-                getClients(),
-                getPayments(),
-                getTeamLedger('all'),
-                getLogs()
+                fetch('/api/sheets/clients').then(res => res.json()),
+                fetch('/api/sheets/payments').then(res => res.json()),
+                fetch('/api/sheets/ledger').then(res => res.json()),
+                fetch('/api/sheets/logs').then(res => res.json())
             ]);
 
             // === LAYER 3: CALCULATE FINANCE FOR EACH CLIENT ===
@@ -189,21 +180,30 @@ export function useFinanceStore() {
     const addClient = useCallback(async (clientData: any) => {
         // Optimistic
         optimisticLog(`Created Client ${clientData.clientName}`);
-        await apiAddClient(clientData);
+        await fetch('/api/sheets/clients', {
+            method: 'POST',
+            body: JSON.stringify(clientData)
+        });
         await loadData();
     }, [loadData]);
 
     const addPayment = useCallback(async (paymentData: any) => {
         // Optimistic
         optimisticLog(`Added Payment ₹${paymentData.amount}`);
-        await apiAddPayment(paymentData);
+        await fetch('/api/sheets/payments', {
+            method: 'POST',
+            body: JSON.stringify(paymentData)
+        });
         await loadData();
     }, [loadData]);
 
     const addTeamLedgerEntry = useCallback(async (ledgerData: any) => {
         // Optimistic
         optimisticLog(`Added Ledger Entry ₹${ledgerData.amount} (${ledgerData.type})`);
-        await apiAddTeamLedgerEntry(ledgerData);
+        await fetch('/api/sheets/add-ledger', {
+            method: 'POST',
+            body: JSON.stringify(ledgerData)
+        });
         await loadData();
     }, [loadData]);
 
@@ -217,7 +217,10 @@ export function useFinanceStore() {
         });
         optimisticLog('Updated Pricing');
 
-        await apiUpdateClientPricing(clientId, costs);
+        await fetch('/api/sheets/update-pricing', {
+            method: 'POST',
+            body: JSON.stringify({ clientId, ...costs })
+        });
         await loadData();
     }, [loadData]);
 
@@ -231,7 +234,10 @@ export function useFinanceStore() {
         });
         optimisticLog(`Updated Client Details`);
 
-        await import('./api').then(mod => mod.updateClient(clientId, details));
+        await fetch('/api/sheets/update-details', {
+            method: 'POST',
+            body: JSON.stringify({ clientId, ...details })
+        });
         await loadData();
     }, [loadData]);
 
@@ -245,19 +251,25 @@ export function useFinanceStore() {
         });
         optimisticLog(`Updated Status to ${status}`);
 
-        await apiUpdateClientStatus(clientId, status);
+        await fetch('/api/sheets/update-status', {
+            method: 'POST',
+            body: JSON.stringify({ clientId, status })
+        });
         await loadData();
     }, [loadData]);
 
     const deleteClient = useCallback(async (clientId: string) => {
         optimisticLog('Deleted Client');
-        await apiDeleteClient(clientId, false);
+        await fetch('/api/sheets/delete', {
+            method: 'POST',
+            body: JSON.stringify({ clientId, hardDelete: false })
+        });
         await loadData();
     }, [loadData]);
 
     const addLog = useCallback(async (logData: any) => {
         optimisticLog(logData.action, logData.actor);
-        await apiAddLog(logData);
+        // await apiAddLog(logData); // Can implement logs API if needed
         // await loadData(); // No need to full refresh for logs
     }, []);
 
