@@ -163,8 +163,10 @@ const AdminPanelContent = () => {
     );
 
     const calculateNetProfit = (id: string) => {
-        const stats = clientFinances.get(id) || { totalReceived: 0, totalExpenses: 0 };
-        return stats.totalReceived - stats.totalExpenses;
+        const stats = clientFinances.get(id);
+        if (!stats) return 0;
+        // Net profit = totalPaid - teamSpent (actual cash received minus team expenses)
+        return stats.totalPaid - stats.teamSpent;
     };
 
     const [isPricingDirty, setIsPricingDirty] = useState(false);
@@ -870,17 +872,17 @@ const AdminPanelContent = () => {
                             <div className="space-y-6">
                                 <div className="p-6 rounded-3xl bg-[#14121E]/50 border border-white/[0.05] flex flex-col items-center justify-center gap-6">
                                     <SimplePieChart items={[
-                                        { label: 'Received', value: finance.totalReceived || 0, color: '#6E6AF6' },
-                                        { label: 'Pending', value: (finance.projectValue || 0) - (finance.totalReceived || 0), color: '#2C2B35' }
+                                        { label: 'Received', value: finance.totalPaid || 0, color: '#6E6AF6' },
+                                        { label: 'Pending', value: finance.pending || 0, color: '#2C2B35' }
                                     ]} />
                                     <div className="grid grid-cols-2 gap-4 w-full">
                                         <div className="p-4 rounded-2xl bg-black/20 border border-white/[0.05] text-center">
                                             <p className="text-[10px] text-[#9A9AA6] uppercase tracking-widest mb-1">Total Value</p>
-                                            <p className="text-lg font-black text-white">₹{finance.projectValue?.toLocaleString() || 0}</p>
+                                            <p className="text-lg font-black text-white">₹{finance.totalValue?.toLocaleString() || 0}</p>
                                         </div>
                                         <div className="p-4 rounded-2xl bg-black/20 border border-white/[0.05] text-center">
                                             <p className="text-[10px] text-[#9A9AA6] uppercase tracking-widest mb-1">Net Profit</p>
-                                            <p className="text-lg font-black text-[#3FE0C5]">₹{(finance.netProfit || 0).toLocaleString()}</p>
+                                            <p className="text-lg font-black text-[#3FE0C5]">₹{(finance.profit || 0).toLocaleString()}</p>
                                         </div>
                                     </div>
                                 </div>
