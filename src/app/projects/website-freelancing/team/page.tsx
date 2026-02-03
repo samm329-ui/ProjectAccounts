@@ -286,7 +286,7 @@ const TeamContent = () => {
                                             <Input placeholder="e.g. Server hosting fee, Domain renewal..." className="bg-black/20 border-white/10" value={reason} onChange={e => setReason(e.target.value)} />
                                         </div>
 
-                                        <Button className="w-full btn-primary mt-4" onClick={handleLogExpense} disabled={isSubmitting || !amount}>
+                                        <Button className="w-full btn-primary mt-4" onClick={() => handleLogExpense(type)} disabled={isSubmitting || !amount}>
                                             {isSubmitting ? 'Processing...' : (type === 'spent' ? 'Log Expense' : 'Request Funds')}
                                         </Button>
                                         <p className="text-xs text-muted-foreground text-center">

@@ -1,51 +1,136 @@
-'use client';
+"use client";
 
+import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import {
+    Search, Plus, Filter, MoreVertical, Edit, Trash2,
+    ArrowRight, CheckCircle2, Clock, CreditCard,
+    TrendingUp, Users, Settings, Bell, ChevronDown,
+    ArrowLeft, Calendar, DollarSign, Briefcase, Activity,
+    Shield, Target, Lock, Edit2
+} from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { useFinanceStore } from '@/lib/useFinanceStore';
+import { calculateFinance } from '@/lib/finance';
 import PasscodeProtect from '@/components/PasscodeProtect';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search, Plus, ArrowLeft, Bell, Settings, ChevronDown, Lock, CheckCircle2, ShieldCheck, ArrowRight, Edit, Edit2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { getClients, getPayments, getLogs, getTeamLedger, addClient, updateClientCosts, updateClient, addLog } from '@/lib/api';
 import { ClientPayments } from './components/ClientPayments';
 import { TeamMoney } from './components/TeamMoney';
-import Link from 'next/link';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { updateClientStatus, deleteClient } from '@/lib/api';
-import { Trash2, AlertTriangle } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
 
-function formatTimeAgo(timestamp: string) {
+/**
+ * UTILITY: Format Time Ago
+ */
+const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
-    const past = new Date(timestamp);
-    const diffInMinutes = Math.floor((now.getTime() - past.getTime()) / 60000);
+    const then = new Date(timestamp);
+    const diff = now.getTime() - then.getTime();
+    const mins = Math.floor(diff / 60000);
+    const hrs = Math.floor(mins / 60);
+    const days = Math.floor(hrs / 24);
 
-    if (diffInMinutes < 1) return "Just now";
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays}d ago`;
-}
+    if (days > 0) return `${days}d ago`;
+    if (hrs > 0) return `${hrs}h ago`;
+    if (mins > 0) return `${mins}m ago`;
+    return 'just now';
+};
 
-const AdminPanel = () => {
-    const [clients, setClients] = useState<any[]>([]);
-    const [logs, setLogs] = useState<any[]>([]);
-    const [payments, setPayments] = useState<any[]>([]);
-    const [teamLedger, setTeamLedger] = useState<any[]>([]);
+/**
+ * PIE CHART COMPONENT
+ */
+const SimplePieChart = ({ items }: { items: { label: string; value: number; color: string }[] }) => {
+    const total = items.reduce((acc, item) => acc + item.value, 0);
+    let currentAngle = 0;
+
+    if (total === 0) return <div className="w-32 h-32 rounded-full border border-white/5 flex items-center justify-center text-[10px] text-[#9A9AA6]">NO DATA</div>;
+
+    return (
+        <div className="relative w-36 h-36">
+            <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full drop-shadow-[0_0_15px_rgba(110,106,246,0.2)]">
+                {items.map((item, i) => {
+                    const percentage = item.value / total;
+                    const angle = percentage * 360;
+                    if (angle === 0) return null;
+
+                    const largeArcFlag = percentage > 0.5 ? 1 : 0;
+                    const startAngle = currentAngle;
+                    const endAngle = currentAngle + angle;
+
+                    const x1 = 50 + 50 * Math.cos((Math.PI * startAngle) / 180);
+                    const y1 = 50 + 50 * Math.sin((Math.PI * startAngle) / 180);
+                    const x2 = 50 + 50 * Math.cos((Math.PI * endAngle) / 180);
+                    const y2 = 50 + 50 * Math.sin((Math.PI * endAngle) / 180);
+
+                    currentAngle += angle;
+                    return (
+                        <path
+                            key={i}
+                            d={`M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArcFlag} 1 ${x2} ${y2} Z`}
+                            fill={item.color}
+                        />
+                    );
+                })}
+                <circle cx="50" cy="50" r="38" fill="#14121E" />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
+                <span className="text-[10px] text-[#9A9AA6] uppercase tracking-[0.2em] mb-1">Received</span>
+                <span className="text-xl font-black text-white">{Math.round((items[0].value / total) * 100)}%</span>
+            </div>
+        </div>
+    );
+};
+
+const AdminPanelContent = () => {
+    const { toast } = useToast();
+
+    // Data from Store
+    const {
+        clients,
+        payments,
+        teamLedger,
+        logs,
+        clientFinances,
+        loading,
+        addClient: storeAddClient,
+        updateClientPricing: storeUpdatePricing,
+        updateClientDetails: storeUpdateDetails,
+        updateClientStatus: storeUpdateStatus,
+        deleteClient: storeDeleteClient,
+        addLog: storeAddLog
+    } = useFinanceStore();
+
+    // UI State
     const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState("pricing");
+    const [adminMode, setAdminMode] = useState(true);
 
-    const [costs, setCosts] = useState<any>({});
-
-    // Create Client State
+    // Dialog States
     const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
+    const [isEditClientOpen, setIsEditClientOpen] = useState(false);
+
+    // Form States
     const [newClient, setNewClient] = useState({
         clientName: '',
         contact: '',
@@ -53,638 +138,447 @@ const AdminPanel = () => {
         serviceCost: '',
         domainCharged: '0',
     });
-    const [isSubmittingClient, setIsSubmittingClient] = useState(false);
 
-    // Edit Client State
-    const [isEditClientOpen, setIsEditClientOpen] = useState(false);
-    const [editClientData, setEditClientData] = useState({
+    const [editClientForm, setEditClientForm] = useState({
         clientName: '',
         contact: '',
         businessType: ''
     });
 
-    // Logs Dialog State
-    const [isLogsOpen, setIsLogsOpen] = useState(false);
+    const [pricingForm, setPricingForm] = useState({
+        serviceCost: 0,
+        domainCharged: 0,
+        actualDomainCost: 0,
+        extraFeatures: 0,
+        extraProductionCharges: 0,
+        contact: ''
+    });
 
-    // Delete State
-    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isPricingDirty, setIsPricingDirty] = useState(false);
+    const [isSavingPricing, setIsSavingPricing] = useState(false);
 
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    async function loadData() {
-        try {
-            const [clientsData, logsData, paymentsData, ledgerData] = await Promise.all([
-                getClients(),
-                getLogs(),
-                getPayments(),
-                getTeamLedger('all'),
-            ]);
-            setClients(clientsData);
-            setLogs(logsData.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-            setPayments(paymentsData);
-            setTeamLedger(ledgerData);
-            if (clientsData.length > 0 && !selectedClientId) {
-                // Only default select if nothing selected
-                setSelectedClientId(clientsData[0].clientId);
-                setCosts(clientsData[0].costs);
-            }
-        } catch (error) {
-            console.error("Failed to fetch admin data", error)
-        } finally {
-            setLoading(false);
-        }
-    }
-
+    // Derived selected client
     const selectedClient = clients.find(c => c.clientId === selectedClientId);
 
+    // Lifecycle: Select first client
+    useEffect(() => {
+        if (clients.length > 0 && !selectedClientId) {
+            setSelectedClientId(clients[0].clientId);
+        }
+    }, [clients, selectedClientId]);
+
+    // Lifecycle: Sync forms on client change
     useEffect(() => {
         if (selectedClient) {
-            setCosts(selectedClient.costs);
-        }
-    }, [selectedClient, clients]); // Update when clients refresh too
-
-    const handleCostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setCosts((prev: any) => ({ ...prev, [name]: value }));
-    };
-
-    const handleCostBlur = async () => {
-        // Auto-save when user leaves a cost field
-        if (selectedClientId) {
-            await handleSaveCosts();
-        }
-    };
-
-    const handleSaveCosts = async () => {
-        if (!selectedClientId) return;
-
-        // Convert to numbers
-        const serviceCost = Number(costs.serviceCost) || 0;
-        const domainCharged = Number(costs.domainCharged) || 0;
-        const actualDomainCost = Number(costs.actualDomainCost) || 0;
-        const extraFeatures = Number(costs.extraFeatures) || 0;
-        const extraProductionCharges = Number(costs.extraProductionCharges) || 0;
-
-        // User formulas:
-        // Total Value = Service + Domain Charged + Extra Features + Extra Production
-        // Total Profit = Total Value + (Domain Charged - Actual Domain Cost)
-        const totalValue = serviceCost + domainCharged + extraFeatures + extraProductionCharges;
-        const profit = totalValue + (domainCharged - actualDomainCost);
-
-        const numericCosts = {
-            serviceCost,
-            domainCharged,
-            actualDomainCost,
-            extraFeatures,
-            extraProductionCharges
-        };
-
-        const result = await updateClientCosts(selectedClientId, numericCosts);
-        if (result.success) {
-            await addLog({
-                actor: 'Admin',
-                action: 'Updated Costs',
-                details: { client: selectedClient?.clientName, totalValue, profit }
+            setPricingForm({
+                serviceCost: Number(selectedClient.costs?.serviceCost || 0),
+                domainCharged: Number(selectedClient.costs?.domainCharged || 0),
+                actualDomainCost: Number(selectedClient.costs?.actualDomainCost || 0),
+                extraFeatures: Number(selectedClient.costs?.extraFeatures || 0),
+                extraProductionCharges: Number(selectedClient.costs?.extraProductionCharges || 0),
+                contact: selectedClient.contact || ''
             });
-            await refreshData();
-        } else {
-            alert('Failed to update costs');
+            setEditClientForm({
+                clientName: selectedClient.clientName || '',
+                contact: selectedClient.contact || '',
+                businessType: selectedClient.businessType || ''
+            });
+            setIsPricingDirty(false);
         }
-    };
+    }, [selectedClient]);
 
-    const refreshData = async () => {
-        // Reloads payments/ledger for child components
-        const [paymentsData, ledgerData, clientsData] = await Promise.all([
-            getPayments(),
-            getTeamLedger('all'),
-            getClients(), // Also reload clients to get updated totals/list
-        ]);
-        setPayments(paymentsData);
-        setTeamLedger(ledgerData);
-        setClients(clientsData);
-    };
-
+    // HANDLERS
     const handleCreateClient = async () => {
-        setIsSubmittingClient(true);
         try {
-            const serviceCost = Number(newClient.serviceCost) || 0;
-            const domainCharged = Number(newClient.domainCharged) || 0;
-            const totalValue = serviceCost + domainCharged;
-
-            await addClient({
+            const sc = Number(newClient.serviceCost) || 0;
+            const dc = Number(newClient.domainCharged) || 0;
+            await storeAddClient({
                 clientName: newClient.clientName,
                 contact: newClient.contact,
                 businessType: newClient.businessType,
-                startDate: new Date().toISOString().split('T')[0],
-                assignedMember: 'member_1', // Default
-                costs: {
-                    serviceCost,
-                    domainCharged,
-                    actualDomainCost: 0,
-                    extraFeatures: 0,
-                    extraProductionCharges: 0
-                },
-                financials: {
-                    totalValue,
-                    profit: totalValue
-                }
+                startDate: new Date().toISOString(),
+                assignedMember: 'unassigned',
+                costs: { serviceCost: sc, domainCharged: dc, actualDomainCost: 0, extraFeatures: 0, extraProductionCharges: 0 },
+                financials: { totalValue: sc + dc, profit: sc + dc }
             });
             setIsCreateClientOpen(false);
             setNewClient({ clientName: '', contact: '', businessType: '', serviceCost: '', domainCharged: '0' });
-            loadData(); // Full reload to show new client
+            toast({ title: "Client Created", description: "Successfully added new project." });
         } catch (error) {
-            console.error("Failed to create client", error);
-        } finally {
-            setIsSubmittingClient(false);
+            toast({ title: "Error", description: "Failed to create client.", variant: "destructive" });
         }
     };
 
-    const handleOpenEditClient = () => {
-        if (selectedClient) {
-            setEditClientData({
-                clientName: selectedClient.clientName,
-                contact: selectedClient.contact,
-                businessType: selectedClient.businessType
-            });
-            setIsEditClientOpen(true);
-        }
-    };
-
-    const handleUpdateClient = async () => {
-        if (!selectedClientId) return;
-        setIsSubmittingClient(true);
+    const handleEditClientSubmit = async () => {
+        if (!selectedClient) return;
         try {
-            await updateClient(selectedClientId, editClientData);
-            await addLog({
-                actor: 'Admin',
-                action: 'Updated Client Details',
-                details: { client: editClientData.clientName }
-            });
+            await storeUpdateDetails(selectedClient.clientId, editClientForm);
             setIsEditClientOpen(false);
-            loadData();
+            toast({ title: "Client Updated", description: "General details saved successfully." });
         } catch (error) {
-            console.error("Failed to update client", error);
+            toast({ title: "Error", description: "Failed to update details.", variant: "destructive" });
+        }
+    };
+
+    const handlePricingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setPricingForm(prev => ({
+            ...prev,
+            [name]: name === 'contact' ? value : Number(value)
+        }));
+        setIsPricingDirty(true);
+    };
+
+    const handleSavePricing = async () => {
+        if (!selectedClient) return;
+        setIsSavingPricing(true);
+        try {
+            // Update Pricing
+            await storeUpdatePricing(selectedClient.clientId, {
+                serviceCost: pricingForm.serviceCost,
+                domainCharged: pricingForm.domainCharged,
+                actualDomainCost: pricingForm.actualDomainCost,
+                extraFeatures: pricingForm.extraFeatures,
+                extraProductionCharges: pricingForm.extraProductionCharges,
+            });
+
+            // Update Contact if changed
+            if (pricingForm.contact !== selectedClient.contact) {
+                await storeUpdateDetails(selectedClient.clientId, { contact: pricingForm.contact });
+            }
+
+            toast({ title: "Pricing Saved", description: "Financial details updated successfully." });
+            setIsPricingDirty(false);
+        } catch (error) {
+            toast({ title: "Save Failed", description: "There was an error updating data.", variant: "destructive" });
         } finally {
-            setIsSubmittingClient(false);
+            setIsSavingPricing(false);
         }
     };
 
-    const updateStatus = async (status: string) => {
-        if (!selectedClientId) return;
+    const handleResetPricing = () => {
+        if (selectedClient) {
+            setPricingForm({
+                serviceCost: Number(selectedClient.costs?.serviceCost || 0),
+                domainCharged: Number(selectedClient.costs?.domainCharged || 0),
+                actualDomainCost: Number(selectedClient.costs?.actualDomainCost || 0),
+                extraFeatures: Number(selectedClient.costs?.extraFeatures || 0),
+                extraProductionCharges: Number(selectedClient.costs?.extraProductionCharges || 0),
+                contact: selectedClient.contact || ''
+            });
+            setIsPricingDirty(false);
+        }
+    };
+
+    const handleStatusUpdate = async (newStatus: string) => {
+        if (!selectedClient) return;
         try {
-            const success = await updateClientStatus(selectedClientId, status);
-            if (success) {
-                await addLog({
-                    actor: 'Admin',
-                    action: 'Updated Client Status',
-                    details: { client: selectedClient?.clientName, status }
-                });
-                alert('Status updated successfully');
-                loadData();
-            }
+            await storeUpdateStatus(selectedClient.clientId, newStatus);
+            toast({ title: "Status Updated", description: `Project is now ${newStatus}.` });
         } catch (error) {
-            console.error("Failed to update status", error);
+            toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
         }
     };
 
-    const handleDeleteClient = async () => {
-        if (!selectedClientId) return;
-        try {
-            // Check 'hardDelete' from a state or default to false (Soft delete)
-            const result = await deleteClient(selectedClientId, false);
-            if (result.success) {
-                await addLog({
-                    actor: 'Admin',
-                    action: 'Deleted Client',
-                    details: { client: selectedClient?.clientName }
-                });
-                setIsDeleteOpen(false);
-                setSelectedClientId(null);
-                loadData();
-            }
-        } catch (error) {
-            console.error("Failed to delete client", error);
-        }
+    // Derived Finance Logic
+    const storedFinance = selectedClient ? clientFinances.get(selectedClient.clientId) : null;
+    const finance = storedFinance || {
+        totalValue: 0, totalPaid: 0, pending: 0, profit: 0,
+        totalRevenue: 0, teamGiven: 0, teamSpent: 0, teamInvestment: 0,
+        teamWallet: 0, progressPercent: 0
     };
+    const { totalValue, totalPaid, pending, profit } = finance;
 
-    if (loading) {
-        return <div className="space-y-6">
-            <Skeleton className="h-16 w-full bg-white/5" />
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                <Skeleton className="h-[600px] md:col-span-3 bg-white/5" />
-                <Skeleton className="h-[600px] md:col-span-5 bg-white/5" />
-                <Skeleton className="h-[600px] md:col-span-4 bg-white/5" />
-            </div>
-        </div>;
-    }
+    const recentLogs = [...logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5);
+
+    if (loading) return <div className="h-screen w-full bg-[#0E0C12] flex items-center justify-center"><Activity className="animate-spin text-[#6E6AF6]" /></div>;
 
     return (
-        <div className="space-y-6">
-            {/* Top Bar */}
-            <header className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Link href="/phases/0" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-                        <ArrowLeft size={16} />
-                        Back to Phase 0
+        <div className="h-screen w-full bg-[#0E0C12] text-[#EAEAF0] flex flex-col overflow-hidden font-sans">
+            {/* Header */}
+            <header className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-[#0E0C12]">
+                <div className="flex flex-col">
+                    <Link href="/phases/0" className="flex items-center gap-1.5 text-xs text-[#9A9AA6] hover:text-[#EAEAF0] mb-1">
+                        <ArrowLeft size={12} /> Phase 0
                     </Link>
-                </div>
-                <div className="text-center">
-                    <div className="flex items-center justify-center gap-2">
-                        <h1 className="text-2xl font-bold text-foreground tracking-tight">Website Freelancing</h1>
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-xl font-bold text-white">Website Freelancing</h1>
+                        <span className="text-xl font-light text-[#9A9AA6]">/ Admin</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">Admin Panel</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#7A5BFF]/10 border border-[#7A5BFF]/30 shadow-[0_0_10px_rgba(122,91,255,0.2)]">
-                        <div className="w-2 h-2 rounded-full bg-[#7A5BFF] shadow-[0_0_5px_#7A5BFF]"></div>
-                        <Label htmlFor="admin-mode" className="text-xs font-semibold text-[#7A5BFF]">Admin Mode: ON</Label>
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${adminMode ? 'bg-[#6E6AF6]/10 border-[#6E6AF6]/30' : 'bg-white/5 border-white/10'}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${adminMode ? 'bg-[#6E6AF6]' : 'bg-zinc-500'}`} />
+                        <span className="text-xs font-semibold">Admin Mode</span>
                     </div>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white"><Settings size={18} /></Button>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white"><Bell size={18} /></Button>
+                    <Button variant="ghost" size="icon" className="text-[#9A9AA6] hover:text-white"><Bell size={18} /></Button>
                 </div>
             </header>
 
-            {/* Main Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Main Content Area */}
+            <main className="flex-1 grid grid-cols-12 gap-6 p-6 overflow-hidden">
 
-                {/* Left Column - Clients */}
-                <div className="lg:col-span-3 h-[calc(100vh-140px)] min-h-[600px]">
-                    <div className="panel h-full flex flex-col p-4 bg-gradient-to-b from-white/[0.03] to-transparent">
-                        <div className="mb-6">
-                            <h2 className="text-lg font-semibold mb-4">Clients</h2>
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input placeholder="Search clients..." className="pl-10 bg-black/30 border-white/10 text-sm h-10 rounded-lg focus-visible:ring-[#7A5BFF]/50" />
-                            </div>
+                {/* LEFT: Clients List */}
+                <div className="col-span-3 flex flex-col bg-[#14121E]/80 backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden">
+                    <div className="p-4 border-b border-white/[0.05]">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#9A9AA6]" />
+                            <Input placeholder="Search projects..." className="bg-white/[0.03] border-white/[0.05] rounded-xl pl-9 h-9 text-xs" />
                         </div>
-                        <div className="flex-grow overflow-y-auto pr-2 space-y-2 custom-scrollbar">
-                            {clients.map(client => (
-                                <div key={client.clientId}
-                                    onClick={() => setSelectedClientId(client.clientId)}
-                                    className={`p-4 rounded-xl cursor-pointer transition-all border ${selectedClientId === client.clientId ? 'bg-white/[0.08] border-white/10 shadow-lg' : 'bg-transparent border-transparent hover:bg-white/[0.03]'}`}>
-                                    <div className="flex justify-between items-start mb-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`w-2 h-2 rounded-full ${client.status === 'Active' ? 'bg-[#23D07A] shadow-[0_0_5px_#23D07A]' : (client.status === 'Delivered' ? 'bg-[#7A5BFF]' : 'bg-gray-400')}`}></span>
-                                            <p className="font-semibold text-sm">{client.clientName}</p>
-                                        </div>
-                                        {client.status === 'Active' && <Badge className="bg-[#23D07A]/10 text-[#23D07A] border border-[#23D07A]/20 text-[10px] px-2 py-0 h-5">Active</Badge>}
-                                        {client.status === 'Delivered' && <Badge variant="secondary" className="bg-[#7A5BFF]/10 text-[#7A5BFF] border border-[#7A5BFF]/20 text-[10px] px-2 py-0 h-5">Delivered</Badge>}
-                                        {client.status === 'Inactive' && <Badge variant="outline" className="text-[10px] px-2 py-0 h-5">Inactive</Badge>}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground pl-4">{client.contact}</p>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                        {clients.map(c => (
+                            <button
+                                key={c.clientId}
+                                onClick={() => setSelectedClientId(c.clientId)}
+                                className={`w-full text-left p-3 rounded-xl transition-all ${selectedClientId === c.clientId ? 'bg-white/5 border-l-2 border-[#6E6AF6]' : 'hover:bg-white/[0.02] border-l-2 border-transparent'}`}
+                            >
+                                <div className="flex justify-between items-start mb-1">
+                                    <span className={`text-sm font-semibold ${selectedClientId === c.clientId ? 'text-white' : 'text-[#9A9AA6]'}`}>{c.clientName}</span>
+                                    <Badge variant="outline" className="text-[9px] h-4 py-0 px-1.5 bg-white/5 border-white/10">{c.status}</Badge>
                                 </div>
-                            ))}
-                        </div>
-                        <div className="pt-4 mt-auto space-y-2">
-                            <Dialog open={isCreateClientOpen} onOpenChange={setIsCreateClientOpen}>
-                                <DialogTrigger asChild>
-                                    <Button className="w-full btn-primary">
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Create Client
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="bg-[#0B0710] border-white/10 text-foreground sm:max-w-[425px]">
-                                    <DialogHeader>
-                                        <DialogTitle>Add New Client</DialogTitle>
-                                        <DialogDescription>
-                                            Enter details for the new website client.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="grid gap-4 py-4">
-                                        <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="name" className="text-right">Name</Label>
-                                            <Input
-                                                id="name"
-                                                value={newClient.clientName}
-                                                onChange={e => setNewClient({ ...newClient, clientName: e.target.value })}
-                                                className="col-span-3 bg-white/5 border-white/10"
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="contact" className="text-right">Contact</Label>
-                                            <Input
-                                                id="contact"
-                                                value={newClient.contact}
-                                                onChange={e => setNewClient({ ...newClient, contact: e.target.value })}
-                                                className="col-span-3 bg-white/5 border-white/10"
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="type" className="text-right">Type</Label>
-                                            <Input
-                                                id="type"
-                                                placeholder="e.g. Portfolio"
-                                                value={newClient.businessType}
-                                                onChange={e => setNewClient({ ...newClient, businessType: e.target.value })}
-                                                className="col-span-3 bg-white/5 border-white/10"
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label htmlFor="cost" className="text-right">Service Cost</Label>
-                                            <Input
-                                                id="cost"
-                                                type="number"
-                                                value={newClient.serviceCost}
-                                                onChange={e => setNewClient({ ...newClient, serviceCost: e.target.value })}
-                                                className="col-span-3 bg-white/5 border-white/10"
-                                            />
-                                        </div>
-                                    </div>
-                                    <DialogFooter>
-                                        <Button variant="outline" onClick={() => setIsCreateClientOpen(false)} className="border-white/10 hover:bg-white/5 hover:text-white">Cancel</Button>
-                                        <Button onClick={handleCreateClient} disabled={isSubmittingClient || !newClient.clientName} className="btn-primary">
-                                            {isSubmittingClient ? 'Creating...' : 'Create Client'}
-                                        </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-
-                            {clients.length === 0 && (
-                                <Button variant="outline" onClick={async () => {
-                                    if (confirm("Upload test data to Google Sheet?")) {
-                                        await import('@/lib/api').then(m => m.seedDatabase());
-                                        window.location.reload();
-                                    }
-                                }} className="w-full border-dashed border-white/20 text-muted-foreground hover:text-white hover:bg-white/5">
-                                    Upload Test Data
+                                <p className="text-[10px] text-[#9A9AA6] truncate">{c.contact || 'No contact info'}</p>
+                            </button>
+                        ))}
+                    </div>
+                    <div className="p-4 bg-gradient-to-t from-[#0E0C12] to-transparent">
+                        <Dialog open={isCreateClientOpen} onOpenChange={setIsCreateClientOpen}>
+                            <DialogTrigger asChild>
+                                <Button className="w-full bg-[#6E6AF6] hover:shadow-[0_0_15px_-3px_#6E6AF6] text-white border-none rounded-xl h-10 text-xs font-bold">
+                                    <Plus size={14} className="mr-2" /> CREATE NEW CLIENT
                                 </Button>
-                            )}
-                        </div>
+                            </DialogTrigger>
+                            <DialogContent className="bg-[#14121E] border-white/10 text-white">
+                                <DialogHeader><DialogTitle>New Workspace</DialogTitle></DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="grid gap-2"><Label>Client / Project Name</Label><Input className="bg-white/5 border-white/10" value={newClient.clientName} onChange={e => setNewClient({ ...newClient, clientName: e.target.value })} /></div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid gap-2"><Label>Service Cost</Label><Input type="number" className="bg-white/5 border-white/10" value={newClient.serviceCost} onChange={e => setNewClient({ ...newClient, serviceCost: e.target.value })} /></div>
+                                        <div className="grid gap-2"><Label>Domain Charged</Label><Input type="number" className="bg-white/5 border-white/10" value={newClient.domainCharged} onChange={e => setNewClient({ ...newClient, domainCharged: e.target.value })} /></div>
+                                    </div>
+                                    <div className="grid gap-2"><Label>Contact Details</Label><Input className="bg-white/5 border-white/10" value={newClient.contact} onChange={e => setNewClient({ ...newClient, contact: e.target.value })} /></div>
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="ghost" onClick={() => setIsCreateClientOpen(false)}>Cancel</Button>
+                                    <Button onClick={handleCreateClient} className="bg-[#6E6AF6]">Create Project</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 </div>
 
-                {/* Center Column - Client Control */}
-                <div className="lg:col-span-5 h-[calc(100vh-140px)] min-h-[600px]">
+                {/* CENTER: Work Area */}
+                <div className="col-span-6 flex flex-col bg-[#14121E]/80 backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden relative">
                     {selectedClient ? (
-                        <div className="panel h-full flex flex-col p-6 relative overflow-hidden">
-                            {/* Background Glow */}
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-[#7A5BFF]/5 blur-3xl pointer-events-none"></div>
-
-                            <div className="flex flex-row justify-between items-start mb-8 relative z-10">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <h2 className="text-2xl font-bold tracking-tight">{selectedClient.clientName}</h2>
-                                        {selectedClient.status === 'Active' && <CheckCircle2 size={18} className="text-[#23D07A]" fill="rgba(35, 208, 122, 0.1)" />}
-                                        {selectedClient.status === 'Delivered' && <ShieldCheck size={18} className="text-[#7A5BFF]" />}
+                        <>
+                            <div className="shrink-0 p-6 pb-0 border-b border-white/[0.03]">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h2 className="text-2xl font-bold text-white tracking-tight">{selectedClient.clientName}</h2>
+                                            <CheckCircle2 size={16} className="text-[#6E6AF6]" />
+                                        </div>
+                                        <p className="text-[#9A9AA6] text-sm">{selectedClient.businessType} · {selectedClient.contact || 'No contact provided'}</p>
                                     </div>
-                                    <p className="text-sm text-muted-foreground">{selectedClient.contact}</p>
+                                    <div className="flex items-center gap-3">
+                                        <Select value={selectedClient.status} onValueChange={handleStatusUpdate}>
+                                            <SelectTrigger className="w-[120px] bg-white/[0.02] border-white/10 text-white rounded-xl h-9 text-xs">
+                                                <SelectValue placeholder="Status" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-[#14121E] border-white/10 text-white">
+                                                <SelectItem value="Active">Active</SelectItem>
+                                                <SelectItem value="Done">Done</SelectItem>
+                                                <SelectItem value="Hold">Hold</SelectItem>
+                                            </SelectContent>
+                                        </Select>
 
-                                    {/* Status Toggles */}
-                                    <div className="flex gap-2 mt-3">
-                                        <Button variant="ghost" size="sm" onClick={() => updateStatus('Active')} className={`h-6 text-[10px] px-2 rounded-md border ${selectedClient.status === 'Active' ? 'bg-[#23D07A]/20 text-[#23D07A] border-[#23D07A]/30' : 'border-white/10 text-muted-foreground hover:bg-white/5'}`}>Active</Button>
-                                        <Button variant="ghost" size="sm" onClick={() => updateStatus('Inactive')} className={`h-6 text-[10px] px-2 rounded-md border ${selectedClient.status === 'Inactive' ? 'bg-white/20 text-white border-white/30' : 'border-white/10 text-muted-foreground hover:bg-white/5'}`}>Inactive</Button>
-                                        <Button variant="ghost" size="sm" onClick={() => updateStatus('Delivered')} className={`h-6 text-[10px] px-2 rounded-md border ${selectedClient.status === 'Delivered' ? 'bg-[#7A5BFF]/20 text-[#7A5BFF] border-[#7A5BFF]/30' : 'border-white/10 text-muted-foreground hover:bg-white/5'}`}>Delivered</Button>
+                                        <Dialog open={isEditClientOpen} onOpenChange={setIsEditClientOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" size="sm" className="bg-white/[0.02] border-white/10 text-[#9A9AA6] rounded-xl text-xs h-9">
+                                                    <Edit2 size={12} className="mr-2" /> EDIT INFO
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="bg-[#14121E] border-white/10 text-white">
+                                                <DialogHeader><DialogTitle>Edit Details</DialogTitle></DialogHeader>
+                                                <div className="space-y-4 py-4">
+                                                    <div className="grid gap-2"><Label>Project Name</Label><Input className="bg-white/5 border-white/10" value={editClientForm.clientName} onChange={e => setEditClientForm({ ...editClientForm, clientName: e.target.value })} /></div>
+                                                    <div className="grid gap-2"><Label>Contact Info</Label><Input className="bg-white/5 border-white/10" value={editClientForm.contact} onChange={e => setEditClientForm({ ...editClientForm, contact: e.target.value })} /></div>
+                                                    <div className="grid gap-2"><Label>Business Brand</Label><Input className="bg-white/5 border-white/10" value={editClientForm.businessType} onChange={e => setEditClientForm({ ...editClientForm, businessType: e.target.value })} /></div>
+                                                </div>
+                                                <DialogFooter><Button onClick={handleEditClientSubmit} className="bg-[#6E6AF6]">Save Changes</Button></DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
                                     </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" onClick={handleOpenEditClient} className="rounded-full h-8 px-4 border-white/10 bg-white/5 hover:bg-white/10 text-xs">
-                                        <Edit className="w-3 h-3 mr-2" /> Client
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => setIsDeleteOpen(true)} className="rounded-full h-8 w-8 hover:bg-red-500/10 text-muted-foreground hover:text-red-500">
-                                        <Trash2 size={14} />
-                                    </Button>
                                 </div>
                             </div>
 
-                            <Tabs defaultValue="pricing" className="flex-grow flex flex-col">
-                                <TabsList className="w-full bg-black/30 border border-white/5 p-1 rounded-xl grid grid-cols-4 mb-6">
-                                    <TabsTrigger value="overview" className="rounded-lg text-xs">Overview</TabsTrigger>
-                                    <TabsTrigger value="pricing" className="rounded-lg text-xs data-[state=active]:bg-[#7A5BFF] data-[state=active]:text-white">Pricing & Costs</TabsTrigger>
-                                    <TabsTrigger value="payments" className="rounded-lg text-xs">Client Payments</TabsTrigger>
-                                    <TabsTrigger value="team" className="rounded-lg text-xs">Team Money</TabsTrigger>
-                                </TabsList>
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+                                <div className="shrink-0 px-6 border-b border-white/[0.03]">
+                                    <TabsList className="bg-transparent w-full justify-start h-auto p-0 gap-6">
+                                        {['Overview', 'Pricing', 'Payments', 'Team'].map((tab) => (
+                                            <TabsTrigger
+                                                key={tab}
+                                                value={tab.toLowerCase()}
+                                                className="bg-transparent border-b-2 border-transparent data-[state=active]:border-[#6E6AF6] data-[state=active]:text-white data-[state=active]:bg-transparent shadow-none text-[#9A9AA6] rounded-none px-1 py-4 text-xs font-bold uppercase tracking-widest transition-all"
+                                            >
+                                                {tab === 'Pricing' ? 'Pricing & Costs' : tab === 'Payments' ? 'Payments' : tab === 'Team' ? 'Team Money' : tab}
+                                            </TabsTrigger>
+                                        ))}
+                                    </TabsList>
+                                </div>
 
-                                <TabsContent value="overview" className="mt-0 flex-grow">
-                                    <div className="flex items-center justify-center h-full text-muted-foreground">Overview content placeholder</div>
-                                </TabsContent>
+                                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar pb-40">
+                                    <TabsContent value="pricing" className="mt-0 space-y-10">
+                                        <div className="grid grid-cols-2 gap-10">
+                                            <div className="space-y-6">
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <Label className="text-[10px] text-[#9A9AA6] uppercase tracking-[0.1em] mb-2 block">Service Cost</Label>
+                                                        <div className="relative">
+                                                            <span className="absolute left-3 top-2.5 text-[#9A9AA6] text-sm">₹</span>
+                                                            <Input name="serviceCost" type="number" value={pricingForm.serviceCost} onChange={handlePricingChange} className="bg-white/[0.02] border-white/10 text-white pl-8 h-10 rounded-xl" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <Label className="text-[10px] text-[#9A9AA6] uppercase tracking-[0.1em] mb-2 block">Domain Charged</Label>
+                                                            <div className="relative">
+                                                                <span className="absolute left-3 top-2.5 text-[#9A9AA6] text-sm">₹</span>
+                                                                <Input name="domainCharged" type="number" value={pricingForm.domainCharged} onChange={handlePricingChange} className="bg-white/[0.02] border-white/10 text-white pl-8 h-10 rounded-xl" />
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <Label className="text-[10px] text-[#9A9AA6] uppercase tracking-[0.1em] mb-2 block">Actual Cost</Label>
+                                                            <div className="relative">
+                                                                <span className="absolute left-3 top-2.5 text-[#9A9AA6] text-sm">₹</span>
+                                                                <Input name="actualDomainCost" type="number" value={pricingForm.actualDomainCost} onChange={handlePricingChange} className="bg-white/[0.02] border-white/10 text-white pl-8 h-10 rounded-xl" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-[10px] text-[#9A9AA6] uppercase tracking-[0.1em] mb-2 block">Extra Features</Label>
+                                                        <div className="relative">
+                                                            <span className="absolute left-3 top-2.5 text-[#9A9AA6] text-sm">₹</span>
+                                                            <Input name="extraFeatures" type="number" value={pricingForm.extraFeatures} onChange={handlePricingChange} className="bg-white/[0.02] border-white/10 text-white pl-8 h-10 rounded-xl" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="pt-2">
+                                                        <Label className="text-[10px] text-[#9A9AA6] uppercase tracking-[0.1em] mb-2 block">Contact Details</Label>
+                                                        <Input name="contact" value={pricingForm.contact} onChange={handlePricingChange} className="bg-white/[0.02] border-white/10 text-white h-10 rounded-xl" />
+                                                    </div>
+                                                </div>
 
-                                <TabsContent value="pricing" className="mt-0 flex-grow">
-                                    <div className="grid grid-cols-12 gap-6 h-full">
-                                        <div className="col-span-7 space-y-5">
-                                            <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground ml-1">Service Cost</Label>
-                                                <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
-                                                    <Input name="serviceCost" type="number" value={costs.serviceCost} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground ml-1">Domain Charged</Label>
-                                                <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
-                                                    <Input name="domainCharged" type="number" value={costs.domainCharged} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground ml-1">Actual Domain Cost</Label>
-                                                <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
-                                                    <Input name="actualDomainCost" type="number" value={costs.actualDomainCost} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground ml-1">Extra Features</Label>
-                                                <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
-                                                    <Input name="extraFeatures" type="number" value={costs.extraFeatures} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-xs text-muted-foreground ml-1">Extra Production Charges</Label>
-                                                <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
-                                                    <Input name="extraProductionCharges" type="number" value={costs.extraProductionCharges} onChange={handleCostChange} className="bg-black/20 border-white/10 pl-8 h-10 font-medium" />
+                                                <div className="flex gap-4 pt-4">
+                                                    <Button onClick={handleSavePricing} disabled={isSavingPricing || !isPricingDirty} className={`flex-1 ${isPricingDirty ? 'bg-[#6E6AF6] text-white shadow-[0_5px_15px_-5px_#6E6AF6]' : 'bg-white/5 text-zinc-600'} rounded-2xl h-11 font-black`}>
+                                                        {isSavingPricing ? 'SAVING...' : 'SAVE CHANGES'}
+                                                    </Button>
+                                                    <Button onClick={handleResetPricing} variant="ghost" className="flex-1 text-[#9A9AA6] hover:bg-white/5 rounded-2xl h-11 opacity-50">RESET</Button>
                                                 </div>
                                             </div>
 
-                                            <div className="flex gap-3 pt-4">
-                                                <Button onClick={handleSaveCosts} className="flex-1 btn-primary text-sm">Save Changes</Button>
-                                                <Button variant="outline" className="flex-1 bg-white/5 border-white/10 text-muted hover:text-white h-[44px] rounded-xl text-sm">Reset</Button>
+                                            <div className="bg-[#6E6AF6]/5 border border-[#6E6AF6]/10 rounded-3xl p-8 space-y-8 h-fit">
+                                                <div className="flex justify-between items-center pb-6 border-b border-white/[0.05]">
+                                                    <span className="text-[#9A9AA6] text-[10px] font-bold uppercase tracking-widest">Total Value</span>
+                                                    <span className="text-3xl font-black text-white">₹{totalValue.toLocaleString()}</span>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-[#9A9AA6]">Received</span>
+                                                        <span className="text-white font-bold">₹{totalPaid.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-[#9A9AA6]">Remaining</span>
+                                                        <span className="text-white font-bold">₹{pending.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center pt-6 border-t border-white/[0.05]">
+                                                        <span className="text-emerald-400 font-bold uppercase text-[10px] tracking-widest">Net Profit</span>
+                                                        <span className="text-2xl font-black text-emerald-400">₹{profit.toLocaleString()}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
+                                    </TabsContent>
 
-                                        <div className="col-span-5">
-                                            <div className="bg-black/30 border border-white/10 rounded-2xl p-5 space-y-4">
-                                                <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-muted-foreground">Total Value</span>
-                                                    <span className="font-bold text-white">₹{selectedClient.financials.totalValue.toLocaleString()}</span>
+                                    <TabsContent value="overview" className="mt-0">
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div className="bg-[#1E1C24]/50 border border-white/[0.05] rounded-3xl p-10 flex flex-col items-center justify-center">
+                                                <h3 className="text-[#9A9AA6] text-[10px] font-black uppercase tracking-[0.2em] mb-8">Payment Velocity</h3>
+                                                <SimplePieChart items={[
+                                                    { label: 'Paid', value: totalPaid, color: '#6E6AF6' },
+                                                    { label: 'Pending', value: pending, color: '#1E1B2E' }
+                                                ]} />
+                                                <div className="flex justify-center gap-10 mt-10 w-full opacity-60">
+                                                    <div className="flex items-center gap-2 text-[10px] font-bold text-white uppercase"><div className="w-2 h-2 rounded-full bg-[#6E6AF6]" /> PAID</div>
+                                                    <div className="flex items-center gap-2 text-[10px] font-bold text-[#9A9AA6] uppercase"><div className="w-2 h-2 rounded-full bg-[#24212D]" /> PENDING</div>
                                                 </div>
-                                                <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-muted-foreground">Paid</span>
-                                                    <span className="font-bold text-[#4FD1FF]">₹{selectedClient.financials.paid.toLocaleString()}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-muted-foreground">Pending</span>
-                                                    <span className="font-bold text-[#FFB86B]">₹{selectedClient.financials.pending.toLocaleString()}</span>
-                                                </div>
-                                                <div className="w-full h-px bg-white/10 my-2"></div>
-                                                <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-muted-foreground">Profit</span>
-                                                    <span className="font-bold text-[#23D07A] text-lg">₹{selectedClient.financials.profit.toLocaleString()}</span>
-                                                </div>
+                                            </div>
 
-                                                <Button variant="ghost" size="sm" onClick={handleOpenEditClient} className="w-full mt-2 text-xs text-muted-foreground hover:text-white flex items-center justify-center gap-1">
-                                                    <Edit2 size={12} /> Edit Client info
-                                                </Button>
+                                            <div className="bg-[#1E1C24]/30 border border-white/[0.05] rounded-3xl p-8 space-y-10">
+                                                <h3 className="text-[#9A9AA6] text-[10px] font-black uppercase tracking-[0.2em]">Efficiency KPIs</h3>
+                                                <div className="space-y-8">
+                                                    <div>
+                                                        <div className="flex justify-between text-xs font-bold mb-3 uppercase tracking-wider">
+                                                            <span className="text-[#EAEAF0]">Realization Rate</span>
+                                                            <span className="text-[#6E6AF6]">{Math.round((totalPaid / (totalValue || 1)) * 100)}%</span>
+                                                        </div>
+                                                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                                            <div className="h-full bg-[#6E6AF6] shadow-[0_0_10px_rgba(110,106,246,0.5)]" style={{ width: `${(totalPaid / (totalValue || 1)) * 100}%` }} />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex justify-between text-xs font-bold mb-3 uppercase tracking-wider">
+                                                            <span className="text-[#EAEAF0]">Profit Margin</span>
+                                                            <span className="text-emerald-400">{Math.round((profit / (totalValue || 1)) * 100)}%</span>
+                                                        </div>
+                                                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                                            <div className="h-full bg-emerald-500" style={{ width: `${(profit / (totalValue || 1)) * 100}%` }} />
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </TabsContent>
+                                    </TabsContent>
 
-                                <TabsContent value="payments" className="mt-0 flex-grow">
-                                    <ClientPayments
-                                        clientId={selectedClient.clientId}
-                                        payments={payments}
-                                        onPaymentAdded={refreshData}
-                                    />
-                                </TabsContent>
-
-                                <TabsContent value="team" className="mt-0 flex-grow">
-                                    <TeamMoney
-                                        clientId={selectedClient.clientId}
-                                        teamLedger={teamLedger}
-                                        onEntryAdded={refreshData}
-                                    />
-                                </TabsContent>
+                                    <TabsContent value="payments" className="m-0"><ClientPayments clientId={selectedClient.clientId} finance={finance} /></TabsContent>
+                                    <TabsContent value="team" className="m-0"><TeamMoney clientId={selectedClient.clientId} finance={finance} /></TabsContent>
+                                </div>
                             </Tabs>
-                        </div>
+                        </>
                     ) : (
-                        <div className="panel h-full flex items-center justify-center">
-                            <p className="text-muted-foreground">Select a client to manage details.</p>
+                        <div className="flex-1 flex flex-col items-center justify-center text-[#9A9AA6] opacity-30 gap-4">
+                            <Activity size={48} />
+                            <span className="text-xs font-bold uppercase tracking-[0.2em]">Select Workspace</span>
                         </div>
                     )}
                 </div>
 
-                {/* Right Column - Oversight */}
-                <div className="lg:col-span-4 h-[calc(100vh-140px)] flex flex-col gap-6">
-                    <div className="panel flex-grow flex flex-col relative overflow-hidden">
-                        <h2 className="text-lg font-semibold mb-6">Recent Activity</h2>
-                        <ul className="space-y-6 relative z-10">
-                            {logs.slice(0, 4).map((log, i) => (
-                                <li key={log.logId} className="flex gap-4">
-                                    <div className="mt-1.5 min-w-[8px]">
-                                        <div className="w-2 h-2 rounded-full bg-[#FFB86B] shadow-[0_0_6px_#FFB86B]"></div>
-                                        {i !== logs.slice(0, 4).length - 1 && <div className="w-px h-full bg-white/5 mx-auto mt-2"></div>}
-                                    </div>
-                                    <div className="pb-2">
-                                        <p className="text-sm font-medium text-white mb-0.5">{log.action}</p>
-                                        <p className="text-xs text-muted-foreground mb-1">{log.details.from ? `Changed from ₹${log.details.from} to ₹${log.details.to}` : (log.details.amount ? `₹${log.details.amount} (${log.details.mode})` : '')}</p>
-                                        <p className="text-[10px] text-muted-foreground/50">{log.actor} • {formatTimeAgo(log.timestamp)}</p>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                        <Button variant="link" onClick={() => setIsLogsOpen(true)} className="text-[#7A5BFF] hover:text-[#4FD1FF] p-0 h-auto mt-auto self-start text-xs flex items-center gap-1">
-                            View All <ArrowRight size={12} />
-                        </Button>
-                    </div>
-
-                    <div className="panel p-6 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <ShieldCheck size={80} />
-                        </div>
-                        <div className="space-y-4 relative z-10">
-                            <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground text-sm">Total Value</span>
-                                <span className="font-bold text-white text-lg">₹{clients.reduce((acc, c) => acc + c.financials.totalValue, 0).toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground text-sm">Total Profit</span>
-                                <span className="font-bold text-white text-lg">₹{clients.reduce((acc, c) => acc + c.financials.profit, 0).toLocaleString()}</span>
-                            </div>
-                            <div className="w-full h-px bg-white/5"></div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground text-sm">Risk Low</span>
-                                <div className="w-8 h-8 rounded-full bg-[#23D07A]/10 flex items-center justify-center border border-[#23D07A]/20 text-[#23D07A]">
-                                    <Lock size={14} />
+                {/* RIGHT: Stats & Logs */}
+                <div className="col-span-3 flex flex-col gap-6">
+                    <div className="flex-1 bg-[#14121E]/80 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-5 overflow-hidden flex flex-col">
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9A9AA6] mb-6">Execution Logs</h2>
+                        <div className="flex-1 overflow-y-auto space-y-5 relative custom-scrollbar">
+                            <div className="absolute left-[5px] top-2 bottom-0 w-[1px] bg-gradient-to-b from-white/10 to-transparent" />
+                            {recentLogs.map((log, i) => (
+                                <div key={i} className="relative pl-6">
+                                    <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-[#1E1C24] border border-[#FFB86B]" />
+                                    <p className="text-xs text-white leading-tight mb-1 font-medium">{log.action.replace(/_/g, ' ')}</p>
+                                    <p className="text-[9px] text-[#9A9AA6] uppercase tracking-tighter">{log.actor} · {formatTimeAgo(log.timestamp)}</p>
                                 </div>
-                            </div>
+                            ))}
                         </div>
-                        <Button variant="link" onClick={() => setIsLogsOpen(true)} className="text-[#7A5BFF] hover:text-[#4FD1FF] p-0 h-auto mt-6 text-xs flex items-center gap-1">
-                            View All Logs <ArrowRight size={12} />
-                        </Button>
+                        <div className="pt-6 border-t border-white/[0.05] mt-auto">
+                            <div className="flex justify-between items-center mb-4">
+                                <span className="text-[10px] text-[#9A9AA6] font-bold uppercase">Total Volume</span>
+                                <span className="text-sm font-black text-white">₹{totalValue.toLocaleString()}</span>
+                            </div>
+                            <Button variant="outline" className="w-full text-[10px] font-bold h-9 border-white/10 hover:bg-white/5 tracking-widest uppercase">
+                                VIEW AUDIT TRAIL <ArrowRight size={12} className="ml-2" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
-                {/* Edit Client Dialog */}
-                <Dialog open={isEditClientOpen} onOpenChange={setIsEditClientOpen}>
-                    <DialogContent className="bg-[#0B0710] border-white/10 text-foreground sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle>Edit Client</DialogTitle>
-                            <DialogDescription>Update client details.</DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-name" className="text-right">Name</Label>
-                                <Input id="edit-name" value={editClientData.clientName} onChange={e => setEditClientData({ ...editClientData, clientName: e.target.value })} className="col-span-3 bg-white/5 border-white/10" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-contact" className="text-right">Contact</Label>
-                                <Input id="edit-contact" value={editClientData.contact} onChange={e => setEditClientData({ ...editClientData, contact: e.target.value })} className="col-span-3 bg-white/5 border-white/10" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-type" className="text-right">Type</Label>
-                                <Input id="edit-type" value={editClientData.businessType} onChange={e => setEditClientData({ ...editClientData, businessType: e.target.value })} className="col-span-3 bg-white/5 border-white/10" />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsEditClientOpen(false)} className="border-white/10 hover:bg-white/5 hover:text-white">Cancel</Button>
-                            <Button onClick={handleUpdateClient} disabled={isSubmittingClient} className="btn-primary">
-                                {isSubmittingClient ? 'Updating...' : 'Save Changes'}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-
-                {/* Logs Dialog */}
-                <Dialog open={isLogsOpen} onOpenChange={setIsLogsOpen}>
-                    <DialogContent className="bg-[#0B0710] border-white/10 text-foreground sm:max-w-[600px] h-[80vh] flex flex-col">
-                        <DialogHeader>
-                            <DialogTitle>Activity Logs</DialogTitle>
-                        </DialogHeader>
-                        <div className="flex-grow overflow-y-auto custom-scrollbar p-2">
-                            <ul className="space-y-4">
-                                {logs.map((log) => (
-                                    <li key={log.logId} className="flex gap-4 border-b border-white/5 pb-2">
-                                        <div className="mt-1.5 min-w-[8px]">
-                                            <div className="w-2 h-2 rounded-full bg-[#FFB86B]"></div>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-white mb-0.5">{log.action}</p>
-                                            <p className="text-xs text-muted-foreground mb-1">
-                                                {typeof log.details === 'string' ? log.details : JSON.stringify(log.details)}
-                                            </p>
-                                            <p className="text-[10px] text-muted-foreground/50">{log.actor} • {new Date(log.timestamp).toLocaleString()}</p>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-
-                {/* Delete Confirmation Dialog */}
-                <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                    <DialogContent className="bg-[#0B0710] border-red-500/20 text-foreground sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 text-red-500"><AlertTriangle size={18} /> Delete Client</DialogTitle>
-                            <DialogDescription>
-                                Are you sure you want to delete <strong>{selectedClient?.clientName}</strong>?
-                                This will archive the client and they will no longer appear in the active list.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsDeleteOpen(false)} className="border-white/10 hover:bg-white/5 hover:text-white">Cancel</Button>
-                            <Button onClick={handleDeleteClient} className="bg-red-500 hover:bg-red-600 text-white border-none">
-                                Delete Client
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-
-            </div>
+            </main>
         </div>
     );
 };
@@ -697,7 +591,7 @@ export default function AdminPage() {
             title="Admin Access Required"
             description="Please enter the administrator passcode to manage project settings."
         >
-            <AdminPanel />
+            <AdminPanelContent />
         </PasscodeProtect>
-    )
+    );
 }

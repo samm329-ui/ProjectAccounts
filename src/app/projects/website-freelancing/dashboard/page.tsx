@@ -1,5 +1,4 @@
 'use client';
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowUp, Lock, Clock, Monitor, ChevronRight, Users, ChevronDown, ArrowRight, Eye, Pencil, Trash2, AlertCircle, CheckCircle2, XCircle, Bell, TrendingUp, DollarSign } from 'lucide-react';
 import {
@@ -15,52 +14,50 @@ import {
   Bar,
   ReferenceLine
 } from 'recharts';
-import { getSummary, getPayments, getClients } from '@/lib/api';
+import { useFinanceStore } from '@/lib/useFinanceStore';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+/**
+ * LAYER 1: UI LAYER (PURE DISPLAY)
+ * 
+ * STRICT RULES:
+ * ❌ NO calculations
+ * ❌ NO data fetching
+ * ❌ NO local state for finance data
+ * ✅ ONLY display what store provides
+ */
+
 export default function DashboardPage() {
-  const [summary, setSummary] = useState<any>(null);
-  const [payments, setPayments] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  // === LAYER 2: GET DATA FROM STORE ===
+  const {
+    clients,
+    payments,
+    globalFinance,
+    clientFinances,
+    loading
+  } = useFinanceStore();
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [summaryData, paymentsData, clientsData] = await Promise.all([
-          getSummary(),
-          getPayments(),
-          getClients()
-        ]);
-        setSummary(summaryData);
-        setPayments(paymentsData);
-        // Filter formatting for table
-        setClients(clientsData);
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
+  // === PREPARE VIEW DATA (FORMATTING ONLY, NO CALCULATION) ===
 
-  // Format payments for Line Chart
+  // Format payments for Line Chart - last 10, reversed for chronological order
   const lineChartData = payments.slice(0, 10).map(p => ({
     date: new Date(p.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short' }),
     amount: p.amount,
     type: p.type
   })).reverse();
 
-  // Format for Bar Chart
-  const barChartData = clients.map(c => ({
-    name: c.clientName,
-    Paid: c.financials.paid,
-    Pending: c.financials.pending
-  }));
+  // Format for Bar Chart - use pre-calculated finance data
+  const barChartData = clients.map(client => {
+    const finance = clientFinances.get(client.clientId);
+    return {
+      name: client.clientName,
+      Paid: finance?.totalPaid || 0,
+      Pending: finance?.pending || 0
+    };
+  });
 
   if (loading) {
     return (
@@ -104,15 +101,15 @@ export default function DashboardPage() {
 
       {/* Metric Cards Row */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1: Total Revenue */}
+        {/* Card 1: Total Revenue (Actually Received) */}
         <Card className="bg-gradient-to-br from-[#7A5BFF]/10 to-[#7A5BFF]/5 border-[#7A5BFF]/20 hover:shadow-[0_0_30px_rgba(122,91,255,0.3)] transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
             <Lock className="h-4 w-4 text-[#7A5BFF]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">₹{summary?.totalRevenue?.toLocaleString() || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">Projected Revenue - Pending</p>
+            <div className="text-2xl font-bold text-white">₹{globalFinance.totalRevenue.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1">Total Amount Received</p>
           </CardContent>
         </Card>
 
@@ -123,8 +120,8 @@ export default function DashboardPage() {
             <TrendingUp className="h-4 w-4 text-[#FFB86B]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">₹{summary?.projectedRevenue?.toLocaleString() || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">All Projects Total Value</p>
+            <div className="text-2xl font-bold text-white">₹{globalFinance.projectedRevenue.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1">Total Contract Value</p>
           </CardContent>
         </Card>
 
@@ -135,7 +132,7 @@ export default function DashboardPage() {
             <Lock className="h-4 w-4 text-[#4FD1FF]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">₹{summary?.totalPending?.toLocaleString() || 0}</div>
+            <div className="text-2xl font-bold text-white">₹{globalFinance.totalPending.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">Yet to receive</p>
           </CardContent>
         </Card>
@@ -150,7 +147,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold bg-gradient-to-r from-[#23D07A] to-[#4FD1FF] bg-clip-text text-transparent">
-                ₹{summary?.totalCash?.toLocaleString() || 0}
+                ₹{globalFinance.totalCash.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground mt-1">Cash received from clients</p>
             </CardContent>
@@ -284,19 +281,21 @@ export default function DashboardPage() {
                     </div>
                   </td>
                   <td className="py-4 px-6 font-medium">₹{client.financials.totalValue.toLocaleString()}</td>
-                  <td className="py-4 px-6 font-medium">₹{client.financials.paid.toLocaleString()}</td>
+                  <td className="py-4 px-6 font-medium text-green-400">₹{client.financials.paid.toLocaleString()}</td>
                   <td className="py-4 px-6 font-medium text-white/70">₹{client.financials.pending.toLocaleString()}</td>
                   <td className="py-4 px-6">
-                    <span className={`chip ${client.status === 'Delivered' ? 'chip-delivered' : 'chip-active'}`}>
+                    <span className={`px-2 py-1 rounded text-xs border ${client.status === 'Delivered' ? 'border-[#7A5BFF]/30 text-[#7A5BFF] bg-[#7A5BFF]/10' : 'border-[#23D07A]/30 text-[#23D07A] bg-[#23D07A]/10'}`}>
                       {client.status || 'Active'}
                     </span>
                   </td>
                   <td className="py-4 px-6"></td>
                   <td className="py-4 px-6 text-right">
-                    <Button variant="outline" size="sm" className="h-8 rounded-lg border-white/10 text-muted hover:text-white bg-transparent hover:bg-white/5">
-                      View
-                      <ChevronRight size={14} className="ml-1" />
-                    </Button>
+                    <Link href="/projects/website-freelancing/admin">
+                      <Button variant="outline" size="sm" className="h-8 rounded-lg border-white/10 text-muted hover:text-white bg-transparent hover:bg-white/5">
+                        View
+                        <ChevronRight size={14} className="ml-1" />
+                      </Button>
+                    </Link>
                   </td>
                 </tr>
               ))}

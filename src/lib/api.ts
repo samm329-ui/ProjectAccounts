@@ -127,7 +127,10 @@ export async function getClients() {
                 paid: Number(row.get('paid') || 0),
                 pending: Number(row.get('pending') || 0),
                 profit: Number(row.get('profit') || 0),
-            }
+            },
+            version: Number(row.get('version') || 0), // Optimistic concurrency
+            lastModifiedAt: row.get('lastModifiedAt'),
+            lastModifiedBy: row.get('lastModifiedBy')
         }));
     } catch (error) {
         console.error("Error fetching clients:", error);
@@ -273,7 +276,10 @@ export async function addClient(client: any) {
             totalValue: client.financials.totalValue,
             paid: 0,
             pending: client.financials.totalValue,
-            profit: client.financials.profit
+            profit: client.financials.profit,
+            version: 1, // Start versioning
+            lastModifiedAt: new Date().toISOString(),
+            lastModifiedBy: 'system'
         });
         return { success: true };
     } catch (e) {
@@ -283,10 +289,22 @@ export async function addClient(client: any) {
 }
 
 
-export async function updateClientCosts(clientId: string, costs: any) {
+/**
+ * ROBUST UPDATE CLIENT PRICING
+ * Handles atomic updates, validation, optimistic concurrency, logic recalculation, and audit logging.
+ */
+export async function updateClientPricing(clientId: string, payload: {
+    serviceCost: number;
+    domainCharged: number;
+    actualDomainCost: number;
+    extraFeatures: number;
+    extraProductionCharges: number;
+    lastKnownVersion: number;
+    editorId: string;
+}) {
     const doc = await getDoc();
     if (!doc) {
-        console.log("Mock Update Costs:", clientId, costs);
+        console.log("Mock Update Costs:", clientId, payload);
         return { success: true };
     }
 
@@ -295,37 +313,100 @@ export async function updateClientCosts(clientId: string, costs: any) {
         const rows = await sheet.getRows();
         const row = rows.find(r => r.get('clientId') === clientId);
 
-        if (row) {
-            // User-provided formulas:
-            // Total Value = Service + DomainCharged + ExtraFeatures + ExtraProduction
-            // Total Profit = Total Value + (Domain Charged - Actual Domain Cost)
-
-            const serviceCost = costs.serviceCost || 0;
-            const domainCharged = costs.domainCharged || 0;
-            const actualDomainCost = costs.actualDomainCost || 0;
-            const extraFeatures = costs.extraFeatures || 0;
-            const extraProductionCharges = costs.extraProductionCharges || 0;
-
-            const totalValue = serviceCost + domainCharged + extraFeatures + extraProductionCharges;
-            const profit = totalValue + (domainCharged - actualDomainCost);
-
-            row.assign({
-                serviceCost,
-                domainCharged,
-                actualDomainCost,
-                extraFeatures,
-                extraProductionCharges,
-                totalValue,
-                profit
-            });
-            await sheet.saveUpdatedCells();
-            return { success: true };
+        if (!row) {
+            return { success: false, message: 'Client not found', status: 404 };
         }
-        return { success: false, message: 'Client not found' };
+
+        // 1. Optimistic Concurrency Check
+        const currentVersion = Number(row.get('version') || 0);
+        if (currentVersion !== payload.lastKnownVersion) {
+            return {
+                success: false,
+                status: 409,
+                message: 'Data has changed since you loaded it. Please refresh.',
+                currentData: {
+                    serviceCost: Number(row.get('serviceCost')),
+                    domainCharged: Number(row.get('domainCharged')),
+                    actualDomainCost: Number(row.get('actualDomainCost')),
+                    extraFeatures: Number(row.get('extraFeatures')),
+                    extraProductionCharges: Number(row.get('extraProductionCharges')),
+                    version: currentVersion
+                }
+            };
+        }
+
+        // 2. Validation
+        if ([payload.serviceCost, payload.domainCharged, payload.actualDomainCost, payload.extraFeatures, payload.extraProductionCharges].some(v => v < 0)) {
+            return { success: false, message: 'Costs cannot be negative', status: 400 };
+        }
+
+        // 3. Recalculate Logic (Server-Side Canonical)
+        // Total Value = Service + DomainCharged + ExtraFeatures + ExtraProduction
+        // Profit = Total Value + (Domain Charged - Actual Domain Cost)
+        const totalValue = payload.serviceCost + payload.domainCharged + payload.extraFeatures + payload.extraProductionCharges;
+        const profit = totalValue + (payload.domainCharged - payload.actualDomainCost);
+        const newVersion = currentVersion + 1;
+        const nowIso = new Date().toISOString();
+
+        // 4. Atomic Sheet Update
+        row.assign({
+            serviceCost: payload.serviceCost,
+            domainCharged: payload.domainCharged,
+            actualDomainCost: payload.actualDomainCost,
+            extraFeatures: payload.extraFeatures,
+            extraProductionCharges: payload.extraProductionCharges,
+            totalValue,
+            profit,
+            version: newVersion,
+            lastModifiedAt: nowIso,
+            lastModifiedBy: payload.editorId,
+            changeSummary: `Updated pricing by ${payload.editorId}`
+        });
+
+        await row.save();
+
+        // 5. Audit Log (Append is separate but important)
+        await addLog({
+            actor: payload.editorId,
+            action: 'UPDATE_PRICING',
+            details: {
+                clientId,
+                changes: payload,
+                newTotal: totalValue,
+                newProfit: profit,
+                versionFrom: currentVersion,
+                versionTo: newVersion
+            }
+        });
+
+        return {
+            success: true,
+            newVersion,
+            client: {
+                ...payload,
+                totalValue,
+                profit,
+                version: newVersion
+            }
+        };
+
     } catch (e) {
         console.error("Update Costs Failed:", e);
-        return { success: false };
+        return { success: false, message: 'Internal Server Error', status: 500 };
     }
+}
+
+// Deprecated: use updateClientPricing instead
+export async function updateClientCosts(clientId: string, costs: any) {
+    return updateClientPricing(clientId, {
+        serviceCost: costs.serviceCost,
+        domainCharged: costs.domainCharged,
+        actualDomainCost: costs.actualDomainCost,
+        extraFeatures: costs.extraFeatures,
+        extraProductionCharges: costs.extraProductionCharges,
+        lastKnownVersion: 0, // Bypass check for legacy calls
+        editorId: 'system-legacy'
+    });
 }
 
 export async function deleteClient(clientId: string, hardDelete: boolean) {

@@ -10,4 +10,4 @@ export type Phase = {
   status: "On going" | "Upcoming";
 };
 
-export const phases: Phase[] = phasesData;
+export const phases: Phase[] = phasesData as Phase[];

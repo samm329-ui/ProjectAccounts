@@ -34,7 +34,11 @@ const CLIENT_COLS = {
     TOTAL_VALUE: 12,     // M
     PAID: 13,            // N
     PENDING: 14,         // O
-    PROFIT: 15           // P
+    PROFIT: 15,          // P
+    LAST_MODIFIED_AT: 16,// Q
+    LAST_MODIFIED_BY: 17,// R
+    VERSION: 18,         // S
+    CHANGE_SUMMARY: 19   // T
 };
 
 // Column indices in Payments sheet
@@ -74,10 +78,11 @@ export async function recalculateAll(actor: string = 'system'): Promise<RecalcRe
         lockAcquired = true;
 
         // 2. Read all necessary data
+        // Updated range to include new columns up to T
         const [clientsData, paymentsData] = await Promise.all([
             sheets.spreadsheets.values.get({
                 spreadsheetId,
-                range: `${SHEETS.CLIENTS}!A2:P`
+                range: `${SHEETS.CLIENTS}!A2:T`
             }),
             sheets.spreadsheets.values.get({
                 spreadsheetId,
@@ -113,7 +118,9 @@ export async function recalculateAll(actor: string = 'system'): Promise<RecalcRe
         clientRows.forEach(row => {
             const clientId = row[CLIENT_COLS.CLIENT_ID];
             if (!clientId) {
-                updates.push(['', '', '', '']); // Empty row
+                // Return empty values for all calculated columns (M through P)
+                // Note: We only update M:P in this batch recalc, other cols are preserved/ignored
+                updates.push(['', '', '', '']);
                 return;
             }
 

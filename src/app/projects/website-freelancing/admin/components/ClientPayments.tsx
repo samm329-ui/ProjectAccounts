@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,27 +10,26 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Plus, CreditCard, Banknote, Calendar } from 'lucide-react';
-import { addPayment } from '@/lib/api';
+import { useFinanceStore } from '@/lib/useFinanceStore';
+import { FinanceResult, Payment } from '@/lib/finance'; // Import Payment from canonical source
 
-interface Payment {
-    paymentId: string;
-    projectId: string;
-    clientId: string;
-    date: string;
-    amount: number;
-    type: string;
-    mode: string;
-    recordedBy: string;
-}
-
+/**
+ * LAYER 1: UI COMPONENT
+ * Pure display of payment history and add payment form
+ */
 interface ClientPaymentsProps {
     clientId: string;
-    payments: Payment[];
-    onPaymentAdded: () => void; // Callback to refresh data
+    finance: FinanceResult | null | undefined; // Receive calculated finance
 }
 
-export function ClientPayments({ clientId, payments, onPaymentAdded }: ClientPaymentsProps) {
+export function ClientPayments({ clientId, finance }: ClientPaymentsProps) {
+    // Get store methods
+    const { payments, addPayment: storeAddPayment } = useFinanceStore();
+
+    // Filter payments for display (NOT CALCULATION)
+    // Correct type is used from store
     const filteredPayments = payments.filter(p => p.clientId === clientId);
+
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -41,8 +42,8 @@ export function ClientPayments({ clientId, payments, onPaymentAdded }: ClientPay
     const handleAddPayment = async () => {
         setIsSubmitting(true);
         try {
-            await addPayment({
-                projectId: 'website-freelance', // Hardcoded for now
+            await storeAddPayment({
+                projectId: 'website-freelance',
                 clientId,
                 date,
                 amount: Number(amount),
@@ -51,7 +52,7 @@ export function ClientPayments({ clientId, payments, onPaymentAdded }: ClientPay
                 recordedBy: 'admin'
             });
             setIsDialogOpen(false);
-            onPaymentAdded();
+
             // Reset form
             setAmount('');
             setDate(new Date().toISOString().split('T')[0]);
@@ -62,7 +63,8 @@ export function ClientPayments({ clientId, payments, onPaymentAdded }: ClientPay
         }
     };
 
-    const totalPaid = filteredPayments.filter(p => p.type === 'Credit').reduce((sum, p) => sum + p.amount, 0);
+    // USE CALCULATED VALUE FROM STORE
+    const totalPaid = finance?.totalPaid || 0;
 
     return (
         <div className="space-y-6 h-full flex flex-col">
@@ -103,9 +105,9 @@ export function ClientPayments({ clientId, payments, onPaymentAdded }: ClientPay
                                     id="amount"
                                     type="number"
                                     value={amount}
-                                    onChange={e => setAmount(e.target.value)}
-                                    className="col-span-3 bg-white/5 border-white/10"
-                                    placeholder="0.00"
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    className="col-span-3"
+                                    placeholder="0"
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -114,87 +116,96 @@ export function ClientPayments({ clientId, payments, onPaymentAdded }: ClientPay
                                     id="date"
                                     type="date"
                                     value={date}
-                                    onChange={e => setDate(e.target.value)}
-                                    className="col-span-3 bg-white/5 border-white/10"
+                                    onChange={(e) => setDate(e.target.value)}
+                                    className="col-span-3"
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="type" className="text-right">Type</Label>
                                 <Select value={type} onValueChange={setType}>
-                                    <SelectTrigger className="col-span-3 bg-white/5 border-white/10">
-                                        <SelectValue placeholder="Select type" />
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-[#0B0710] border-white/10 text-white">
-                                        <SelectItem value="Credit">Credit (Received)</SelectItem>
-                                        <SelectItem value="Debit">Debit (Refund/Adj)</SelectItem>
+                                    <SelectContent>
+                                        <SelectItem value="Credit">Credit (Income)</SelectItem>
+                                        <SelectItem value="Debit">Debit (Refund)</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="mode" className="text-right">Mode</Label>
                                 <Select value={mode} onValueChange={setMode}>
-                                    <SelectTrigger className="col-span-3 bg-white/5 border-white/10">
-                                        <SelectValue placeholder="Select mode" />
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-[#0B0710] border-white/10 text-white">
-                                        <SelectItem value="Online">Online / UPI</SelectItem>
+                                    <SelectContent>
+                                        <SelectItem value="Online">Online</SelectItem>
                                         <SelectItem value="Cash">Cash</SelectItem>
-                                        <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                                        <SelectItem value="Cheque">Cheque</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting} className="border-white/10 hover:bg-white/5 hover:text-white">Cancel</Button>
-                            <Button onClick={handleAddPayment} disabled={isSubmitting || !amount} className="btn-primary">
-                                {isSubmitting ? 'Recording...' : 'Record Payment'}
+                            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                            <Button onClick={handleAddPayment} disabled={isSubmitting}>
+                                {isSubmitting ? 'Adding...' : 'Add Payment'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
             </div>
 
-            <div className="rounded-xl border border-white/10 overflow-hidden flex-grow relative bg-black/20">
-                <div className="absolute inset-0 overflow-y-auto custom-scrollbar">
+            <Card className="flex-1 bg-white/5 border-white/10 overflow-hidden flex flex-col min-h-0">
+                <CardContent className="p-0 flex-1 overflow-auto">
                     <Table>
-                        <TableHeader className="bg-white/5 sticky top-0 z-10 backdrop-blur-sm">
-                            <TableRow className="hover:bg-transparent border-white/10">
-                                <TableHead className="text-muted-foreground font-medium text-xs">Date</TableHead>
-                                <TableHead className="text-muted-foreground font-medium text-xs">Amount</TableHead>
-                                <TableHead className="text-muted-foreground font-medium text-xs">Type</TableHead>
-                                <TableHead className="text-muted-foreground font-medium text-xs">Mode</TableHead>
-                                <TableHead className="text-muted-foreground font-medium text-xs">By</TableHead>
+                        <TableHeader className="bg-white/5 sticky top-0 z-10">
+                            <TableRow className="border-white/10 hover:bg-transparent">
+                                <TableHead className="w-[100px]">Date</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Mode</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredPayments.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground text-sm">
+                                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                                         No payments recorded yet.
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                filteredPayments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(p => (
-                                    <TableRow key={p.paymentId} className="hover:bg-white/5 border-white/5 transition-colors">
-                                        <TableCell className="text-xs text-muted-foreground">{new Date(p.date).toLocaleDateString()}</TableCell>
-                                        <TableCell className="font-medium text-white text-sm">₹{p.amount.toLocaleString()}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className={`text-[10px] px-2 h-5 border ${p.type === 'Credit' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                                                {p.type}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                            {p.mode === 'Cash' ? <Banknote size={12} /> : <CreditCard size={12} />}
-                                            {p.mode}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground text-[10px] uppercase">{p.recordedBy}</TableCell>
-                                    </TableRow>
-                                ))
+                                filteredPayments
+                                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                    .map((payment) => (
+                                        <TableRow key={payment.paymentId} className="border-white/5 hover:bg-white/5">
+                                            <TableCell className="font-medium text-zinc-300">
+                                                {new Date(payment.date).toLocaleDateString()}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    variant="secondary"
+                                                    className={
+                                                        payment.type === 'Credit'
+                                                            ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'
+                                                            : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'
+                                                    }
+                                                >
+                                                    {payment.type}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-zinc-400">{payment.mode || 'Online'}</TableCell>
+                                            <TableCell className={`text-right font-bold ${payment.type === 'Credit' ? 'text-emerald-500' : 'text-red-500'
+                                                }`}>
+                                                {payment.type === 'Credit' ? '+' : '-'} ₹{payment.amount.toLocaleString()}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
                             )}
                         </TableBody>
                     </Table>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }
