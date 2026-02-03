@@ -119,7 +119,7 @@ export async function addClientRow(client: any) {
     await sheets.spreadsheets.values.append({
         spreadsheetId,
         range: `${SHEETS.CLIENTS}!A:T`,
-        valueInputOption: "RAW",
+        valueInputOption: "USER_ENTERED",
         requestBody: {
             values: [[
                 `client_${Date.now()}`,
@@ -162,7 +162,7 @@ export async function updateClientPricingRow(clientId: string, payload: any) {
     await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: `${SHEETS.CLIENTS}!H${rowIndex}:T${rowIndex}`,
-        valueInputOption: "RAW",
+        valueInputOption: "USER_ENTERED",
         requestBody: {
             values: [[
                 payload.serviceCost,
@@ -211,7 +211,7 @@ export async function deleteClientRow(clientId: string, hardDelete: boolean = fa
         await sheets.spreadsheets.values.update({
             spreadsheetId,
             range: `${SHEETS.CLIENTS}!G${rowIndex}`,
-            valueInputOption: "RAW",
+            valueInputOption: "USER_ENTERED",
             requestBody: {
                 values: [['Deleted']],
             },
@@ -231,7 +231,7 @@ export async function addPaymentRow(payment: any) {
     await sheets.spreadsheets.values.append({
         spreadsheetId,
         range: `${SHEETS.PAYMENTS}!A:H`,
-        valueInputOption: "RAW",
+        valueInputOption: "USER_ENTERED",
         requestBody: {
             values: [[
                 `pay_${Date.now()}`,

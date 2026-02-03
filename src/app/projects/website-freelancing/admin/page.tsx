@@ -44,6 +44,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { useFinanceStore } from '@/lib/useFinanceStore';
 import { calculateFinance } from '@/lib/finance';
@@ -630,7 +631,7 @@ const AdminPanelContent = () => {
             </div>
 
             {/* MOBILE VIEW (strictly < 480px via hidden md:block equivalent) */}
-            <div className="flex md:hidden flex-col h-full w-full relative z-10 overflow-y-auto custom-scrollbar pb-24">
+            <div className="flex md:hidden flex-col h-full w-full relative z-10 overflow-y-auto custom-scrollbar pb-24 max-w-[100vw] overflow-x-hidden">
                 {/* Mobile Header */}
                 <div className="px-6 pt-8 pb-4 space-y-4">
                     <div className="flex items-center justify-between">
@@ -707,34 +708,57 @@ const AdminPanelContent = () => {
 
                 {selectedClient ? (
                     <div className="px-6 space-y-6">
-                        {/* Client Summary Card */}
+                        {/* Client Summary Card with Switcher */}
                         <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1A1B2E] to-[#0F1020] border border-white/[0.06] shadow-xl">
                             <div className="flex items-start justify-between mb-2">
                                 <div>
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity">
                                         <h2 className="text-xl font-bold text-white">{selectedClient?.clientName}</h2>
                                         <Shield size={16} className="text-[#3FE0C5]" />
                                     </div>
-                                    <p className="text-[#6B6F85] text-xs mt-0.5">-{selectedClient?.contact || '8967422848'}</p>
+                                    <p className="text-[#6B6F85] text-xs mt-0.5">{selectedClient?.contact || 'No contact provided'}</p>
                                 </div>
                                 <div className="flex gap-2">
-                                    <Select value={selectedClient?.status} onValueChange={handleStatusUpdate}>
-                                        <SelectTrigger className="h-8 bg-black/20 border-white/[0.08] rounded-xl text-[10px] font-bold text-white/80 px-3 min-w-[80px]">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-[#14121E] border-white/10 text-white">
-                                            <SelectItem value="Active">Active</SelectItem>
-                                            <SelectItem value="Done">Done</SelectItem>
-                                            <SelectItem value="Hold">Hold</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <Sheet>
+                                        <SheetTrigger asChild>
+                                            <Button variant="outline" size="sm" className="h-8 bg-black/20 border-white/[0.08] rounded-xl text-[10px] font-bold text-[#6B6F85] uppercase tracking-wider px-3">
+                                                SWITCH
+                                            </Button>
+                                        </SheetTrigger>
+                                        <SheetContent side="bottom" className="bg-[#14121E] border-t border-white/10 p-0 rounded-t-3xl min-h-[50vh]">
+                                            <SheetHeader className="p-6 pb-2 border-b border-white/5">
+                                                <SheetTitle className="text-white text-sm font-bold uppercase tracking-wider">Select Project</SheetTitle>
+                                            </SheetHeader>
+                                            <ScrollArea className="h-[40vh] p-4">
+                                                <div className="space-y-2">
+                                                    {clients.map(c => (
+                                                        <button
+                                                            key={c.clientId}
+                                                            onClick={() => {
+                                                                setSelectedClientId(c.clientId);
+                                                                // Close sheet implicitly by state update or user tap outside
+                                                            }}
+                                                            className={`w-full p-4 rounded-xl flex items-center justify-between transition-colors ${selectedClientId === c.clientId ? 'bg-[#6E6AF6]/10 border border-[#6E6AF6]/30' : 'bg-white/5 border border-transparent'}`}
+                                                        >
+                                                            <div className="text-left">
+                                                                <p className={`text-sm font-bold ${selectedClientId === c.clientId ? 'text-white' : 'text-[#9AA0B4]'}`}>{c.clientName}</p>
+                                                                <p className="text-[10px] text-[#6B6F85] uppercase tracking-wider">{c.status}</p>
+                                                            </div>
+                                                            {selectedClientId === c.clientId && <CheckCircle2 size={16} className="text-[#6E6AF6]" />}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </ScrollArea>
+                                        </SheetContent>
+                                    </Sheet>
+
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         className="h-8 bg-black/20 border-white/[0.08] rounded-xl text-[10px] font-bold text-[#6B6F85] uppercase tracking-wider px-3"
                                         onClick={() => setIsEditClientOpen(true)}
                                     >
-                                        <Edit2 size={12} className="mr-1.5" /> EDIT INFO
+                                        <Edit2 size={12} className="mr-1.5" /> EDIT
                                     </Button>
                                 </div>
                             </div>
@@ -804,71 +828,97 @@ const AdminPanelContent = () => {
                                                 </div>
                                             </div>
 
-                                            <div>
-                                                <Label className="text-[10px] text-[#6B6F85] font-black uppercase tracking-widest mb-2.5 block px-1">EXTRA FEATURES</Label>
-                                                <div className="relative">
-                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B6F85] text-sm font-medium">₹</span>
-                                                    <Input
-                                                        name="extraFeatures"
-                                                        type="number"
-                                                        value={pricingForm.extraFeatures}
-                                                        onChange={handlePricingChange}
-                                                        className="bg-white/[0.03] border-white/[0.08] text-white pl-10 h-12 rounded-xl text-sm font-bold focus:bg-white/[0.05]"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <Label className="text-[10px] text-[#6B6F85] font-black uppercase tracking-widest mb-2.5 block px-1">CONTACT DETAILS</Label>
-                                                <Input
-                                                    name="contact"
-                                                    value={pricingForm.contact}
-                                                    onChange={handlePricingChange}
-                                                    className="bg-white/[0.03] border-white/[0.08] text-white h-12 rounded-xl text-sm font-bold focus:bg-white/[0.05]"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="flex gap-4 pt-2">
-                                            <Button
-                                                onClick={handleSavePricing}
-                                                disabled={isSavingPricing || !isPricingDirty}
-                                                className={`flex-1 rounded-2xl h-14 font-black text-xs tracking-widest uppercase transition-all ${isPricingDirty ? 'bg-gradient-to-r from-[#7C6CFF] to-[#6366F1] text-white shadow-[0_8px_20px_-6px_#7C6CFF]' : 'bg-white/5 text-[#6B6F85]'}`}
-                                            >
+                                            <Button onClick={handleSavePricing} disabled={isSavingPricing || !isPricingDirty} className={`w-full ${isPricingDirty ? 'bg-[#6E6AF6] text-white' : 'bg-white/5 text-zinc-600'} rounded-xl h-12 font-black shadow-none`}>
                                                 {isSavingPricing ? 'SAVING...' : 'SAVE CHANGES'}
                                             </Button>
-                                            <Button
-                                                onClick={handleResetPricing}
-                                                variant="ghost"
-                                                className="px-6 text-[#6B6F85] font-black text-xs tracking-widest uppercase h-14"
-                                            >
-                                                RESET
-                                            </Button>
-                                        </div>
-                                    </div>
-
-                                    {/* Financial Summary Card */}
-                                    <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1A1B2E] to-[#0F1020] border border-white/[0.06] shadow-2xl space-y-6">
-                                        <div className="flex justify-between items-center pb-5 border-b border-white/[0.04]">
-                                            <span className="text-[#6B6F85] text-[10px] font-black uppercase tracking-wider">TOTAL VALUE</span>
-                                            <span className="text-3xl font-black text-white">₹{totalValue.toLocaleString()}</span>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-[#6B6F85] text-xs font-medium">Received</span>
-                                                <span className="text-white text-sm font-bold">₹{totalPaid.toLocaleString()}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-[#6B6F85] text-xs font-medium">Remaining</span>
-                                                <span className="text-white text-sm font-bold">₹{pending.toLocaleString()}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center pt-5 border-t border-white/[0.04]">
-                                                <span className="text-[#3FE0C5] text-[10px] font-black uppercase tracking-[0.1em]">NET PROFIT</span>
-                                                <span className="text-2xl font-black text-[#3FE0C5] drop-shadow-[0_0_10px_rgba(63,224,197,0.3)]">₹{profit.toLocaleString()}</span>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'overview' && (
+                            <div className="space-y-6">
+                                <div className="bg-[#1E1C24]/50 border border-white/[0.05] rounded-3xl p-8 flex flex-col items-center justify-center">
+                                    <h3 className="text-[#9A9AA6] text-[10px] font-black uppercase tracking-[0.2em] mb-8">Payment Velocity</h3>
+                                    <SimplePieChart items={[
+                                        { label: 'Paid', value: totalPaid, color: '#6E6AF6' },
+                                        { label: 'Pending', value: pending, color: '#1E1B2E' }
+                                    ]} />
+                                    <div className="flex justify-center gap-6 mt-8 w-full opacity-60">
+                                        <div className="flex items-center gap-2 text-[10px] font-bold text-white uppercase"><div className="w-2 h-2 rounded-full bg-[#6E6AF6]" /> PAID</div>
+                                        <div className="flex items-center gap-2 text-[10px] font-bold text-[#9A9AA6] uppercase"><div className="w-2 h-2 rounded-full bg-[#24212D]" /> PENDING</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'payments' && (
+                            <ClientPayments clientId={selectedClient.clientId} finance={finance} />
+                        )}
+
+                        {activeTab === 'team money' && (
+                            <TeamMoney clientId={selectedClient.clientId} finance={finance} />
+                        )}
+
+                        {activeTab === 'pricing' && (
+                            <div className="space-y-6">
+
+
+                                <div>
+                                    <Label className="text-[10px] text-[#6B6F85] font-black uppercase tracking-widest mb-2.5 block px-1">EXTRA FEATURES</Label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B6F85] text-sm font-medium">₹</span>
+                                        <Input
+                                            name="extraFeatures"
+                                            type="number"
+                                            value={pricingForm.extraFeatures}
+                                            onChange={handlePricingChange}
+                                            className="bg-white/[0.03] border-white/[0.08] text-white pl-10 h-12 rounded-xl text-sm font-bold focus:bg-white/[0.05]"
+                                        />
+                                    </div>
+                                </div>
+
+
+                                <div className="flex gap-4 pt-2">
+                                    <Button
+                                        onClick={handleSavePricing}
+                                        disabled={isSavingPricing || !isPricingDirty}
+                                        className={`flex-1 rounded-2xl h-14 font-black text-xs tracking-widest uppercase transition-all ${isPricingDirty ? 'bg-gradient-to-r from-[#7C6CFF] to-[#6366F1] text-white shadow-[0_8px_20px_-6px_#7C6CFF]' : 'bg-white/5 text-[#6B6F85]'}`}
+                                    >
+                                        {isSavingPricing ? 'SAVING...' : 'SAVE CHANGES'}
+                                    </Button>
+                                    <Button
+                                        onClick={handleResetPricing}
+                                        variant="ghost"
+                                        className="px-6 text-[#6B6F85] font-black text-xs tracking-widest uppercase h-14"
+                                    >
+                                        RESET
+                                    </Button>
+                                </div>
+
+                                {/* Financial Summary Card */}
+                                <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1A1B2E] to-[#0F1020] border border-white/[0.06] shadow-2xl space-y-6">
+                                    <div className="flex justify-between items-center pb-5 border-b border-white/[0.04]">
+                                        <span className="text-[#6B6F85] text-[10px] font-black uppercase tracking-wider">TOTAL VALUE</span>
+                                        <span className="text-3xl font-black text-white">₹{totalValue.toLocaleString()}</span>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[#6B6F85] text-xs font-medium">Received</span>
+                                            <span className="text-white text-sm font-bold">₹{totalPaid.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[#6B6F85] text-xs font-medium">Remaining</span>
+                                            <span className="text-white text-sm font-bold">₹{pending.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pt-5 border-t border-white/[0.04]">
+                                            <span className="text-[#3FE0C5] text-[10px] font-black uppercase tracking-[0.1em]">NET PROFIT</span>
+                                            <span className="text-2xl font-black text-[#3FE0C5] drop-shadow-[0_0_10px_rgba(63,224,197,0.3)]">₹{profit.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
 
                                 {/* Logs Section */}
                                 <div className="space-y-6 pt-4">
@@ -891,83 +941,91 @@ const AdminPanelContent = () => {
                                         VIEW AUDIT TRAIL <ArrowRight size={14} className="ml-2" />
                                     </Button>
                                 </div>
-                            </div>
+                            </div >
                         )}
 
-                        {activeTab === 'overview' && (
-                            <div className="space-y-6">
-                                <div className="p-6 rounded-3xl bg-[#14121E]/50 border border-white/[0.05] flex flex-col items-center justify-center gap-6">
-                                    <SimplePieChart items={[
-                                        { label: 'Received', value: finance.totalPaid || 0, color: '#6E6AF6' },
-                                        { label: 'Pending', value: finance.pending || 0, color: '#2C2B35' }
-                                    ]} />
-                                    <div className="grid grid-cols-2 gap-4 w-full">
-                                        <div className="p-4 rounded-2xl bg-black/20 border border-white/[0.05] text-center">
-                                            <p className="text-[10px] text-[#9A9AA6] uppercase tracking-widest mb-1">Total Value</p>
-                                            <p className="text-lg font-black text-white">₹{finance.totalValue?.toLocaleString() || 0}</p>
-                                        </div>
-                                        <div className="p-4 rounded-2xl bg-black/20 border border-white/[0.05] text-center">
-                                            <p className="text-[10px] text-[#9A9AA6] uppercase tracking-widest mb-1">Net Profit</p>
-                                            <p className="text-lg font-black text-[#3FE0C5]">₹{(finance.profit || 0).toLocaleString()}</p>
+                        {
+                            activeTab === 'overview' && (
+                                <div className="space-y-6">
+                                    <div className="p-6 rounded-3xl bg-[#14121E]/50 border border-white/[0.05] flex flex-col items-center justify-center gap-6">
+                                        <SimplePieChart items={[
+                                            { label: 'Received', value: finance.totalPaid || 0, color: '#6E6AF6' },
+                                            { label: 'Pending', value: finance.pending || 0, color: '#2C2B35' }
+                                        ]} />
+                                        <div className="grid grid-cols-2 gap-4 w-full">
+                                            <div className="p-4 rounded-2xl bg-black/20 border border-white/[0.05] text-center">
+                                                <p className="text-[10px] text-[#9A9AA6] uppercase tracking-widest mb-1">Total Value</p>
+                                                <p className="text-lg font-black text-white">₹{finance.totalValue?.toLocaleString() || 0}</p>
+                                            </div>
+                                            <div className="p-4 rounded-2xl bg-black/20 border border-white/[0.05] text-center">
+                                                <p className="text-[10px] text-[#9A9AA6] uppercase tracking-widest mb-1">Net Profit</p>
+                                                <p className="text-lg font-black text-[#3FE0C5]">₹{(finance.profit || 0).toLocaleString()}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )
+                        }
 
-                        {activeTab === 'payments' && (
-                            <div className="space-y-6">
-                                <ClientPayments clientId={selectedClient.clientId} finance={finance} />
-                            </div>
-                        )}
+                        {
+                            activeTab === 'payments' && (
+                                <div className="space-y-6">
+                                    <ClientPayments clientId={selectedClient.clientId} finance={finance} />
+                                </div>
+                            )
+                        }
 
-                        {activeTab === 'team money' && (
-                            <div className="space-y-6">
-                                <TeamMoney clientId={selectedClient.clientId} finance={finance} />
-                            </div>
-                        )}
+                        {
+                            activeTab === 'team money' && (
+                                <div className="space-y-6">
+                                    <TeamMoney clientId={selectedClient.clientId} finance={finance} />
+                                </div>
+                            )
+                        }
 
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-[#6B6F85] opacity-50 gap-4">
+                    <div className="flex-1 flex flex-col items-center justify-center text-[#6B6F85] opacity-50 gap-4 lg:col-span-9">
                         <Activity size={48} />
                         <span className="text-xs font-black uppercase tracking-[0.2em]">Select Project</span>
                     </div>
                 )}
+            </div>
 
-                {/* Mobile Bottom Navigation */}
-                <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-                    <div className="absolute inset-0 bg-[#0B0B12]/80 backdrop-blur-3xl border-t border-white/[0.05]" />
-                    <div className="relative flex items-center justify-around h-20 px-4 pb-safe">
-                        <div className="flex flex-col items-center gap-1 group relative">
-                            <div className="p-2 rounded-full transition-all text-[#7C6CFF] drop-shadow-[0_0_8px_rgba(124,108,255,0.4)]">
-                                <TrendingUp size={24} />
-                            </div>
-                        </div>
-                        <div className="flex flex-col items-center gap-1 group">
-                            <div className="p-2 rounded-full text-[#6B6F85]">
-                                <Activity size={24} />
-                            </div>
-                        </div>
-                        <div className="flex flex-col items-center gap-1 group relative">
-                            <div className="p-2 rounded-full text-[#6B6F85]">
-                                <Bell size={24} />
-                                <div className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-[#F2B36D] border-2 border-[#0B0B12]" />
-                            </div>
-                        </div>
-                        <div className="flex flex-col items-center gap-1 group">
-                            <div className="p-2 rounded-full text-[#6B6F85]">
-                                <Shield size={24} />
-                            </div>
-                        </div>
-                        <div className="flex flex-col items-center gap-1 group">
-                            <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-xs font-bold text-[#6B6F85]">
-                                JD
-                            </div>
+
+
+            {/* Mobile Bottom Navigation */}
+            <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+                <div className="absolute inset-0 bg-[#0B0B12]/80 backdrop-blur-3xl border-t border-white/[0.05]" />
+                <div className="relative flex items-center justify-around h-20 px-4 pb-safe">
+                    <div className="flex flex-col items-center gap-1 group relative">
+                        <div className="p-2 rounded-full transition-all text-[#7C6CFF] drop-shadow-[0_0_8px_rgba(124,108,255,0.4)]">
+                            <TrendingUp size={24} />
                         </div>
                     </div>
-                </nav>
-            </div>
+                    <div className="flex flex-col items-center gap-1 group">
+                        <div className="p-2 rounded-full text-[#6B6F85]">
+                            <Activity size={24} />
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center gap-1 group relative">
+                        <div className="p-2 rounded-full text-[#6B6F85]">
+                            <Bell size={24} />
+                            <div className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-[#F2B36D] border-2 border-[#0B0B12]" />
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center gap-1 group">
+                        <div className="p-2 rounded-full text-[#6B6F85]">
+                            <Shield size={24} />
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center gap-1 group">
+                        <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-xs font-bold text-[#6B6F85]">
+                            JD
+                        </div>
+                    </div>
+                </div>
+            </nav>
         </div>
     );
 };
