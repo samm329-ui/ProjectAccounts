@@ -301,7 +301,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <Link href="/projects/website-freelancing/admin" className="mt-4 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05] text-[#9AA0B4] text-xs font-bold w-full uppercase tracking-widest">
+                <Link href={`/projects/website-freelancing/details/${client.clientId}`} className="mt-4 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05] text-[#9AA0B4] text-xs font-bold w-full uppercase tracking-widest">
                   View Project Details
                   <ChevronRight size={14} />
                 </Link>
@@ -342,7 +342,7 @@ export default function DashboardPage() {
                     </td>
                     <td className="py-4 px-6"></td>
                     <td className="py-4 px-6 text-right">
-                      <Link href="/projects/website-freelancing/admin">
+                      <Link href={`/projects/website-freelancing/details/${client.clientId}`}>
                         <Button variant="outline" size="sm" className="h-8 rounded-lg border-white/10 text-muted hover:text-white bg-transparent hover:bg-white/5">
                           View
                           <ChevronRight size={14} className="ml-1" />
@@ -358,37 +358,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom Navigation - Mobile Only */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden pb-safe">
-        <div className="absolute inset-0 bg-[#0F1020]/80 backdrop-blur-2xl border-t border-white/[0.08]" />
-        <div className="relative flex items-center justify-around h-16 px-6">
-          <Link href="#" className="flex flex-col items-center gap-1 group">
-            <div className="p-1 rounded-full group-active:scale-95 transition-all">
-              <Monitor size={22} className="text-[#7C6CFF] drop-shadow-[0_0_8px_rgba(124,108,255,0.5)]" />
-            </div>
-          </Link>
-          <Link href="#" className="flex flex-col items-center gap-1 group">
-            <div className="p-1 rounded-full group-active:scale-95 transition-all">
-              <Users size={22} className="text-[#9AA0B4]" />
-            </div>
-          </Link>
-          <Link href="#" className="flex flex-col items-center gap-1 group relative">
-            <div className="p-1 rounded-full group-active:scale-95 transition-all">
-              <Bell size={22} className="text-[#9AA0B4]" />
-              <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400 border border-[#0F1020]" />
-            </div>
-          </Link>
-          <Link href="#" className="flex flex-col items-center gap-1 group">
-            <div className="p-1 rounded-full group-active:scale-95 transition-all">
-              <Shield size={22} className="text-[#9AA0B4]" />
-            </div>
-          </Link>
-          <Link href="#" className="flex flex-col items-center gap-1 group">
-            <div className="p-1 rounded-full group-active:scale-95 transition-all">
-              <div className="w-6 h-6 rounded-full bg-[#1A1B2E] border border-white/10 flex items-center justify-center text-[10px] font-bold text-[#9AA0B4]">JD</div>
-            </div>
-          </Link>
-        </div>
-      </nav>
+
     </div>
   );
 }

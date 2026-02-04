@@ -57,6 +57,7 @@ Pending = Total Value - Total Paid
 - Payments stored in "Payments" sheet
 - Columns: paymentId, clientId, date, amount, type, notes
 - Each payment is linked to a client via clientId
+- Payments are added dynamically from the Payments sheet
 
 ---
 

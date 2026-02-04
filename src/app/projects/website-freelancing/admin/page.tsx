@@ -137,6 +137,7 @@ const AdminPanelContent = () => {
     const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("pricing");
     const [adminMode, setAdminMode] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false); // IDEMPOTENCY LOCK
 
     // Dialog States
     const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
@@ -217,6 +218,8 @@ const AdminPanelContent = () => {
 
     // HANDLERS
     const handleCreateClient = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
             const sc = Number(newClient.serviceCost) || 0;
             const dc = Number(newClient.domainCharged) || 0;
@@ -234,17 +237,22 @@ const AdminPanelContent = () => {
             toast({ title: "Client Created", description: "Successfully added new project." });
         } catch (error) {
             toast({ title: "Error", description: "Failed to create client.", variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleEditClientSubmit = async () => {
-        if (!selectedClient) return;
+        if (!selectedClient || isSubmitting) return;
+        setIsSubmitting(true);
         try {
             await storeUpdateDetails(selectedClient.clientId, editClientForm);
             setIsEditClientOpen(false);
             toast({ title: "Client Updated", description: "General details saved successfully." });
         } catch (error) {
             toast({ title: "Error", description: "Failed to update details.", variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -258,7 +266,7 @@ const AdminPanelContent = () => {
     };
 
     const handleSavePricing = async () => {
-        if (!selectedClient) return;
+        if (!selectedClient || isSavingPricing) return;
         setIsSavingPricing(true);
         try {
             // Update Pricing
@@ -299,23 +307,29 @@ const AdminPanelContent = () => {
     };
 
     const handleStatusUpdate = async (newStatus: string) => {
-        if (!selectedClient) return;
+        if (!selectedClient || isSubmitting) return;
+        setIsSubmitting(true);
         try {
             await storeUpdateStatus(selectedClient.clientId, newStatus);
             toast({ title: "Status Updated", description: `Project is now ${newStatus}.` });
         } catch (error) {
             toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleDeleteClient = async () => {
-        if (!selectedClient) return;
+        if (!selectedClient || isSubmitting) return;
+        setIsSubmitting(true);
         try {
             await storeDeleteClient(selectedClient.clientId);
             toast({ title: "Client Deleted", description: "Project has been removed." });
             setSelectedClientId(clients[0]?.clientId || null);
         } catch (error) {
             toast({ title: "Error", description: "Failed to delete client.", variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -334,8 +348,8 @@ const AdminPanelContent = () => {
 
     return (
         <div className="h-screen w-full bg-[#0E0C12] text-[#EAEAF0] flex flex-col overflow-hidden font-sans relative">
-            {/* Mobile-only background effects (strictly < 480px) */}
-            <div className="fixed inset-0 pointer-events-none md:hidden overflow-hidden bg-[#0B0B12] z-0">
+            {/* Background effects */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden bg-[#0B0B12] z-0">
                 <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-[radial-gradient(circle_at_20%_20%,rgba(124,108,255,0.08),transparent_40%),radial-gradient(circle_at_80%_80%,rgba(63,224,197,0.04),transparent_40%)]" />
                 <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%\' height=\'100%\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }} />
             </div>
@@ -343,7 +357,7 @@ const AdminPanelContent = () => {
             {/* DESKTOP VIEW */}
             <div className="hidden md:flex flex-col h-full w-full relative z-10">
                 {/* Header */}
-                <header className="shrink-0 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 px-4 md:px-6 py-4 border-b border-white/[0.06] bg-[#0E0C12]">
+                <header className="shrink-0 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 px-4 md:px-6 py-4 border-b border-white/[0.06] bg-[#0E0C12]/80 backdrop-blur-md">
                     <div className="flex flex-col">
                         <Link href="/phases/0" className="flex items-center gap-1.5 text-xs text-[#9A9AA6] hover:text-[#EAEAF0] mb-1">
                             <ArrowLeft size={12} /> Phase 0
@@ -366,7 +380,7 @@ const AdminPanelContent = () => {
                 <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-4 md:gap-6 p-4 md:p-6 overflow-hidden">
 
                     {/* LEFT: Clients List */}
-                    <div className="w-full lg:col-span-3 flex flex-col bg-[#14121E]/80 backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden h-auto lg:h-full order-1 lg:order-none">
+                    <div className="w-full lg:col-span-3 flex flex-col bg-[#0F0F13]/60 backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden h-auto lg:h-full order-1 lg:order-none shadow-xl">
                         <div className="p-4 border-b border-white/[0.05]">
                             <div className="relative">
                                 <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#9A9AA6]" />
@@ -415,7 +429,7 @@ const AdminPanelContent = () => {
                     </div>
 
                     {/* CENTER: Work Area */}
-                    <div className="w-full lg:col-span-6 flex flex-col bg-[#14121E]/80 backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden relative order-2 lg:order-none">
+                    <div className="w-full lg:col-span-6 flex flex-col bg-[#0F0F13]/60 backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden relative order-2 lg:order-none shadow-xl">
                         {selectedClient ? (
                             <>
                                 <div className="shrink-0 p-6 pb-0 border-b border-white/[0.03]">
@@ -993,39 +1007,6 @@ const AdminPanelContent = () => {
             </div>
 
 
-
-            {/* Mobile Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-                <div className="absolute inset-0 bg-[#0B0B12]/80 backdrop-blur-3xl border-t border-white/[0.05]" />
-                <div className="relative flex items-center justify-around h-20 px-4 pb-safe">
-                    <div className="flex flex-col items-center gap-1 group relative">
-                        <div className="p-2 rounded-full transition-all text-[#7C6CFF] drop-shadow-[0_0_8px_rgba(124,108,255,0.4)]">
-                            <TrendingUp size={24} />
-                        </div>
-                    </div>
-                    <div className="flex flex-col items-center gap-1 group">
-                        <div className="p-2 rounded-full text-[#6B6F85]">
-                            <Activity size={24} />
-                        </div>
-                    </div>
-                    <div className="flex flex-col items-center gap-1 group relative">
-                        <div className="p-2 rounded-full text-[#6B6F85]">
-                            <Bell size={24} />
-                            <div className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-[#F2B36D] border-2 border-[#0B0B12]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-col items-center gap-1 group">
-                        <div className="p-2 rounded-full text-[#6B6F85]">
-                            <Shield size={24} />
-                        </div>
-                    </div>
-                    <div className="flex flex-col items-center gap-1 group">
-                        <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-xs font-bold text-[#6B6F85]">
-                            JD
-                        </div>
-                    </div>
-                </div>
-            </nav>
         </div>
     );
 };

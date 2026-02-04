@@ -162,7 +162,30 @@ export function useFinanceStore() {
     }, []);
 
     // ========================================================================
-    // MUTATION WRAPPERS (ENFORCE: API → REFETCH → RECALC)
+    // HELPER: RECALCULATE LOCAL STATE
+    // ========================================================================
+    const recalcState = (currentState: FinanceStoreState): FinanceStoreState => {
+        const { clients, payments, teamLedger, logs } = currentState;
+
+        // Recalculate Client Finances
+        const clientFinances = new Map<string, FinanceResult>();
+        clients.forEach(client => {
+            const finance = calculateFinance({ client, payments, teamLedger });
+            clientFinances.set(client.clientId, finance);
+        });
+
+        // Recalculate Global Finance
+        const globalFinance = calculateGlobalFinance({ clients, payments });
+
+        return {
+            ...currentState,
+            clientFinances,
+            globalFinance
+        };
+    };
+
+    // ========================================================================
+    // MUTATION WRAPPERS (ENFORCE: OPTIMISTIC UPDATE → API → REFETCH)
     // ========================================================================
 
     // OPTIMISTIC UPDATE HELPER
@@ -179,7 +202,24 @@ export function useFinanceStore() {
 
     const addClient = useCallback(async (clientData: any) => {
         // Optimistic
-        optimisticLog(`Created Client ${clientData.clientName}`);
+        const tempClient: Client = {
+            clientId: `temp_${Date.now()}`, // Temporary ID until reload
+            status: 'Active',
+            ...clientData
+        };
+
+        setState(prev => recalcState({
+            ...prev,
+            clients: [tempClient, ...prev.clients],
+            logs: [{
+                logId: `temp_log_${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                actor: 'Admin',
+                action: `Created Client ${clientData.clientName}`,
+                details: 'Optimistic'
+            }, ...prev.logs]
+        }));
+
         await fetch('/api/sheets/clients', {
             method: 'POST',
             body: JSON.stringify(clientData)
@@ -189,7 +229,24 @@ export function useFinanceStore() {
 
     const addPayment = useCallback(async (paymentData: any) => {
         // Optimistic
-        optimisticLog(`Added Payment ₹${paymentData.amount}`);
+        const tempPayment: Payment = {
+            paymentId: `temp_${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            ...paymentData
+        };
+
+        setState(prev => recalcState({
+            ...prev,
+            payments: [tempPayment, ...prev.payments],
+            logs: [{
+                logId: `temp_log_${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                actor: 'Admin',
+                action: `Added Payment ₹${paymentData.amount}`,
+                details: 'Optimistic'
+            }, ...prev.logs]
+        }));
+
         await fetch('/api/sheets/payments', {
             method: 'POST',
             body: JSON.stringify(paymentData)
@@ -199,7 +256,24 @@ export function useFinanceStore() {
 
     const addTeamLedgerEntry = useCallback(async (ledgerData: any) => {
         // Optimistic
-        optimisticLog(`Added Ledger Entry ₹${ledgerData.amount} (${ledgerData.type})`);
+        const tempLedger: LedgerEntry = {
+            entryId: `temp_${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            ...ledgerData
+        };
+
+        setState(prev => recalcState({
+            ...prev,
+            teamLedger: [tempLedger, ...prev.teamLedger],
+            logs: [{
+                logId: `temp_log_${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                actor: 'Admin',
+                action: `Added Ledger Entry ₹${ledgerData.amount} (${ledgerData.type})`,
+                details: 'Optimistic'
+            }, ...prev.logs]
+        }));
+
         await fetch('/api/sheets/add-ledger', {
             method: 'POST',
             body: JSON.stringify(ledgerData)
@@ -209,13 +283,19 @@ export function useFinanceStore() {
 
     const updateClientPricing = useCallback(async (clientId: string, costs: any) => {
         // OPTIMISTIC UPDATE
-        setState(prev => {
-            const updatedClients = prev.clients.map(c =>
+        setState(prev => recalcState({
+            ...prev,
+            clients: prev.clients.map(c =>
                 c.clientId === clientId ? { ...c, costs: { ...c.costs, ...costs } } : c
-            );
-            return { ...prev, clients: updatedClients };
-        });
-        optimisticLog('Updated Pricing');
+            ),
+            logs: [{
+                logId: `temp_log_${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                actor: 'Admin',
+                action: 'Updated Pricing',
+                details: 'Optimistic'
+            }, ...prev.logs]
+        }));
 
         await fetch('/api/sheets/update-pricing', {
             method: 'POST',
@@ -226,13 +306,19 @@ export function useFinanceStore() {
 
     const updateClientDetails = useCallback(async (clientId: string, details: any) => {
         // OPTIMISTIC UPDATE
-        setState(prev => {
-            const updatedClients = prev.clients.map(c =>
+        setState(prev => recalcState({
+            ...prev,
+            clients: prev.clients.map(c =>
                 c.clientId === clientId ? { ...c, ...details } : c
-            );
-            return { ...prev, clients: updatedClients };
-        });
-        optimisticLog(`Updated Client Details`);
+            ),
+            logs: [{
+                logId: `temp_log_${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                actor: 'Admin',
+                action: 'Updated Client Details',
+                details: 'Optimistic'
+            }, ...prev.logs]
+        }));
 
         await fetch('/api/sheets/update-details', {
             method: 'POST',
@@ -243,13 +329,19 @@ export function useFinanceStore() {
 
     const updateClientStatus = useCallback(async (clientId: string, status: string) => {
         // OPTIMISTIC UPDATE
-        setState(prev => {
-            const updatedClients = prev.clients.map(c =>
+        setState(prev => recalcState({
+            ...prev,
+            clients: prev.clients.map(c =>
                 c.clientId === clientId ? { ...c, status } : c
-            );
-            return { ...prev, clients: updatedClients };
-        });
-        optimisticLog(`Updated Status to ${status}`);
+            ),
+            logs: [{
+                logId: `temp_log_${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                actor: 'Admin',
+                action: `Updated Status to ${status}`,
+                details: 'Optimistic'
+            }, ...prev.logs]
+        }));
 
         await fetch('/api/sheets/update-status', {
             method: 'POST',
@@ -259,7 +351,19 @@ export function useFinanceStore() {
     }, [loadData]);
 
     const deleteClient = useCallback(async (clientId: string) => {
-        optimisticLog('Deleted Client');
+        // Optimistic
+        setState(prev => recalcState({
+            ...prev,
+            clients: prev.clients.filter(c => c.clientId !== clientId),
+            logs: [{
+                logId: `temp_log_${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                actor: 'Admin',
+                action: 'Deleted Client',
+                details: 'Optimistic'
+            }, ...prev.logs]
+        }));
+
         await fetch('/api/sheets/delete', {
             method: 'POST',
             body: JSON.stringify({ clientId, hardDelete: false })

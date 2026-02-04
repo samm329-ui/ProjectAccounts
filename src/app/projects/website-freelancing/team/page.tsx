@@ -88,7 +88,7 @@ const TeamContent = () => {
     }, [searchQuery, clients]);
 
     const handleLogExpense = async (submitType: string) => {
-        if (!selectedClientId) return;
+        if (!selectedClientId || isSubmitting) return;
         setIsSubmitting(true);
         try {
             const result = await addTeamLedgerEntry({
@@ -138,8 +138,8 @@ const TeamContent = () => {
 
     return (
         <div className="w-full min-h-screen bg-[#0E0C12] text-[#EAEAF0] flex flex-col font-sans relative overflow-hidden">
-            {/* Mobile-only background effects (strictly < 480px) */}
-            <div className="fixed inset-0 pointer-events-none md:hidden overflow-hidden bg-[#0B0B12] z-0">
+            {/* Background effects */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden bg-[#0B0B12] z-0">
                 <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-[radial-gradient(circle_at_20%_20%,rgba(124,108,255,0.08),transparent_40%),radial-gradient(circle_at_80%_80%,rgba(63,224,197,0.04),transparent_40%)]" />
                 <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%\' height=\'100%\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }} />
             </div>
@@ -174,7 +174,7 @@ const TeamContent = () => {
 
                     {/* Left Column - Projects */}
                     <div className="w-full lg:col-span-3 h-auto lg:h-[calc(100vh-140px)] min-h-[400px] lg:min-h-[600px]">
-                        <div className="panel h-full flex flex-col p-4 bg-gradient-to-b from-white/[0.03] to-transparent">
+                        <div className="h-full flex flex-col p-4 bg-[#0F0F13]/60 backdrop-blur-xl border border-white/[0.08] rounded-3xl shadow-xl">
                             <div className="mb-6">
                                 <h2 className="text-lg font-semibold mb-4">My Projects</h2>
                                 <div className="relative">
@@ -211,7 +211,7 @@ const TeamContent = () => {
                     {/* Center Column - Ledger & Actions */}
                     <div className="w-full lg:col-span-6 h-auto lg:h-[calc(100vh-140px)] min-h-[400px] lg:min-h-[600px]">
                         {selectedClient ? (
-                            <div className="panel h-full flex flex-col p-6 relative overflow-hidden">
+                            <div className="h-full flex flex-col p-6 relative overflow-hidden bg-[#0F0F13]/60 backdrop-blur-xl border border-white/[0.08] rounded-3xl shadow-xl">
                                 <div className="flex items-center justify-between mb-6">
                                     <div>
                                         <h2 className="text-2xl font-bold">{selectedClient.clientName}</h2>
@@ -314,7 +314,7 @@ const TeamContent = () => {
 
                     {/* Right Column - Personal Stats */}
                     <div className="w-full lg:col-span-3 h-auto lg:h-[calc(100vh-140px)] flex flex-col gap-4 lg:gap-6">
-                        <div className="panel p-6">
+                        <div className="p-6 bg-[#0F0F13]/60 backdrop-blur-xl border border-white/[0.08] rounded-3xl shadow-xl">
                             <h3 className="text-sm font-medium text-muted-foreground mb-4">My Wallet (Total)</h3>
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="w-10 h-10 rounded-full bg-[#4FD1FF]/20 flex items-center justify-center text-[#4FD1FF]">
@@ -337,7 +337,7 @@ const TeamContent = () => {
                             </div>
                         </div>
 
-                        <div className="panel flex-grow p-6">
+                        <div className="flex-grow p-6 bg-[#0F0F13]/60 backdrop-blur-xl border border-white/[0.08] rounded-3xl shadow-xl">
                             <h3 className="text-sm font-medium text-muted-foreground mb-4">Recent Notifications</h3>
                             <div className="space-y-4">
                                 {ledger.slice(0, 4).map((entry, i) => (
@@ -586,37 +586,7 @@ const TeamContent = () => {
                 )}
 
                 {/* Mobile Bottom Navigation */}
-                <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-                    <div className="absolute inset-0 bg-[#0B0B12]/80 backdrop-blur-3xl border-t border-white/[0.05]" />
-                    <div className="relative flex items-center justify-around h-20 px-4 pb-safe">
-                        <div className="flex flex-col items-center gap-1 group">
-                            <div className="p-2 rounded-full text-[#6B6F85]">
-                                <Settings size={22} />
-                            </div>
-                        </div>
-                        <div className="flex flex-col items-center gap-1 group">
-                            <div className="p-2 rounded-full text-[#6B6F85]">
-                                <Search size={22} />
-                            </div>
-                        </div>
-                        <div className="flex flex-col items-center gap-1 group relative">
-                            <div className="p-2 rounded-full text-[#7C6CFF] drop-shadow-[0_0_8px_rgba(124,108,255,0.4)]">
-                                <Wallet size={24} />
-                            </div>
-                        </div>
-                        <div className="flex flex-col items-center gap-1 group relative">
-                            <div className="p-2 rounded-full text-[#6B6F85]">
-                                <Bell size={22} />
-                                <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#F2B36D] border-2 border-[#0B0B12]" />
-                            </div>
-                        </div>
-                        <div className="flex flex-col items-center gap-1 group">
-                            <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-xs font-bold text-[#6B6F85]">
-                                JD
-                            </div>
-                        </div>
-                    </div>
-                </nav>
+
             </div>
         </div >
     );

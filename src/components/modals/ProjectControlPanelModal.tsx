@@ -3,45 +3,50 @@
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
+  DialogClose,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import {
-  LayoutDashboard,
-  UserCog,
+  LayoutGrid,
+  Settings,
   Users,
   Shield,
-  Eye,
   ArrowRight,
+  ChevronLeft,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 
 const panelCards = [
   {
-    icon: LayoutDashboard,
+    icon: LayoutGrid,
     title: 'Dashboard',
     description: 'High-level overview and financial summary.',
-    permission: 'View Only',
-    permissionIcon: Eye,
+    permission: 'Read-Only',
+    permissionIcon: LayoutGrid, // Using slightly different icons to match visual weight if needed, or same
     href: '/projects/website-freelancing/dashboard',
+    cta: 'View Dashboard',
   },
   {
-    icon: UserCog,
+    icon: Settings, // Gear icon as per ref (approx)
     title: 'Admin',
     description: 'Manage clients, costs, payments, and logs.',
-    permission: 'Full Access',
+    permission: 'Full System Access',
     permissionIcon: Shield,
     href: '/projects/website-freelancing/admin',
+    cta: 'Enter Admin Console',
+    isPrimary: true,
   },
   {
     icon: Users,
     title: 'Team',
     description: 'Track personal ledger and project expenses.',
-    permission: 'Team Access',
+    permission: 'Team Scoped',
     permissionIcon: Users,
     href: '/projects/website-freelancing/team',
+    cta: 'Access Team Panel',
   },
 ];
 
@@ -54,77 +59,119 @@ export function ProjectControlPanelModal({
 }) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[90vw] md:max-w-4xl bg-[#0F0F13] backdrop-blur-3xl border-white/[0.08] text-foreground p-6 sm:p-8 md:p-12 rounded-3xl">
-        <DialogHeader className="text-center mb-6 md:mb-8">
-          <DialogTitle className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
-            Website Freelancing — Control Panel
-          </DialogTitle>
-          <DialogDescription className="text-muted-foreground text-sm md:text-base mt-2">
-            Select how you want to access this project
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          {panelCards.map((card, i) => (
-            <Link href={card.href} passHref key={card.title}>
-              <motion.div
-                className={`group relative flex flex-col justify-between rounded-2xl border p-6 md:p-8 h-full min-h-[200px] md:min-h-[280px] transition-all duration-300 ease-in-out cursor-pointer overflow-hidden
-                  ${i === 1
-                    ? 'md:scale-105 md:z-10 border-white/20 bg-white/[0.06] shadow-2xl shadow-purple-500/10'
-                    : 'border-white/[0.06] bg-white/[0.04] hover:border-white/10'
-                  }`}
-                whileHover={{ y: -8 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {/* Background gradient - stronger for Admin */}
-                <div className={`absolute inset-0 transition-all duration-300 pointer-events-none ${i === 1
-                  ? 'bg-gradient-to-br from-[#8B5CF6]/15 via-[#6366F1]/10 to-transparent'
-                  : 'bg-gradient-to-r from-[#6B5DF9]/0 via-[#9F6FFF]/0 to-[#5CE7F4]/0 group-hover:from-[#6B5DF9]/10 group-hover:via-[#9F6FFF]/10 group-hover:to-[#5CE7F4]/10'
-                  }`}></div>
+      <DialogContent className="w-screen h-[100dvh] max-w-none m-0 p-0 md:h-auto md:w-auto md:max-w-5xl md:m-auto md:p-12 md:rounded-[32px] bg-[#0F0F13]/95 md:bg-[#0B0710]/40 backdrop-blur-3xl border-none md:border border-white/[0.08] text-foreground flex flex-col md:block overflow-y-auto overflow-x-hidden gap-0 shadow-2xl">
 
-                {/* Border glow */}
-                <div className={`absolute -inset-px rounded-2xl border transition-all duration-300 pointer-events-none ${i === 1 ? 'border-white/20' : 'border-transparent group-hover:border-white/10'
-                  }`}></div>
+        {/* Accessible Title for Screen Readers */}
+        <VisuallyHidden.Root>
+          <DialogTitle>Website Freelancing — Control Panel</DialogTitle>
+        </VisuallyHidden.Root>
 
-                <div className="relative z-10">
-                  <div className="mb-4 md:mb-6 flex items-center gap-3 md:gap-4">
-                    <card.icon className={`${i === 1 ? 'w-10 h-10 md:w-12 md:h-12' : 'w-8 h-8 md:w-10 md:h-10'} text-primary transition-transform group-hover:scale-110`} />
-                    <h3 className={`${i === 1 ? 'text-xl md:text-2xl font-black' : 'text-lg md:text-xl font-bold'} text-foreground`}>
-                      {card.title}
-                    </h3>
-                  </div>
-                  <p className="text-muted-foreground text-sm md:text-base mb-4">
-                    {card.description}
-                  </p>
+        {/* Background Gradients (Desktop Only mainly) */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none hidden md:block" />
 
-                  {/* Admin warning text */}
-                  {i === 1 && (
-                    <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                      <Shield className="w-3 h-3 text-amber-400" />
-                      <p className="text-[10px] md:text-xs text-amber-400/90 font-semibold uppercase tracking-wider">
-                        Changes affect financial records
+        {/* Close Button (Desktop) */}
+        <DialogClose className="absolute right-8 top-8 rounded-full p-2 bg-white/5 hover:bg-white/10 transition-colors hidden md:flex text-white/60 hover:text-white">
+          <X size={20} />
+          <span className="sr-only">Close</span>
+        </DialogClose>
+
+        {/* Mobile Header / Desktop Header Wrapper */}
+        <div className="flex-none p-6 pt-12 md:p-0 md:mb-12 relative z-10">
+          {/* Back Button */}
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 text-white/50 hover:text-white transition-colors text-sm font-medium mb-6 md:mb-8"
+          >
+            <ChevronLeft size={16} />
+            Back
+          </button>
+
+          <div className="space-y-2">
+            <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+              Website Freelancing — Control Panel
+            </h2>
+            <p className="text-[#6B6F85] text-sm md:text-base">
+              Select how you want to access this project
+            </p>
+          </div>
+        </div>
+
+        {/* Cards Container */}
+        <div className="flex-1 p-6 md:p-0 overflow-y-auto md:overflow-visible">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 pb-12 md:pb-0">
+            {panelCards.map((card, i) => (
+              <Link href={card.href} key={card.title} className="block h-full">
+                <motion.div
+                  className={`group relative flex flex-col justify-between rounded-2xl md:rounded-3xl border p-6 md:p-7 h-full min-h-[220px] md:min-h-[340px] transition-all duration-300 ease-out
+                    ${card.isPrimary
+                      ? 'bg-gradient-to-br from-[#1A1B24] to-[#0D0D12] border-white/10 md:border-white/15 shadow-2xl shadow-purple-900/10'
+                      : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04] hover:border-white/10'
+                    }`}
+                  whileHover={{ y: -4 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {/* Primary Glow */}
+                  {card.isPrimary && (
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/[0.05] to-transparent pointer-events-none rounded-2xl md:rounded-3xl" />
+                  )}
+
+                  <div className="relative z-10">
+                    {/* Icon */}
+                    <div className="mb-5 md:mb-8">
+                      <card.icon
+                        className={`w-8 h-8 md:w-10 md:h-10 transition-colors ${card.isPrimary ? 'text-white' : 'text-[#6B6F85] group-hover:text-white'}`}
+                        strokeWidth={1.5}
+                      />
+                    </div>
+
+                    {/* Text */}
+                    <div className="mb-2">
+                      <h3 className="text-lg md:text-xl font-bold text-white mb-2">
+                        {card.title}
+                      </h3>
+                      <p className="text-sm text-[#6B6F85] leading-relaxed">
+                        {card.description}
                       </p>
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                <div className="relative z-10 space-y-3 md:space-y-4 mt-auto">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <card.permissionIcon className="w-3 h-3 md:w-4 md:h-4" />
-                    <span className={i === 1 ? 'font-semibold' : ''}>{card.permission}</span>
+                  <div className="relative z-10 mt-6 md:mt-auto space-y-4">
+                    {/* Permission Label */}
+                    <div className="flex items-center gap-2 text-xs font-medium">
+                      {card.isPrimary ? (
+                        <Shield size={12} className="text-white/60" />
+                      ) : (
+                        <card.permissionIcon size={12} className="text-[#6B6F85]" />
+                      )}
+                      <span className={card.isPrimary ? 'text-white/60' : 'text-[#6B6F85]'}>{card.permission}</span>
+                    </div>
+
+                    {/* CTA */}
+                    <div>
+                      <div className={`w-full h-11 md:h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all
+                                ${card.isPrimary
+                          ? 'bg-white/10 border border-white/10 text-white hover:bg-white/15'
+                          : 'bg-transparent border border-white/5 text-[#6B6F85] group-hover:text-white group-hover:border-white/20'
+                        }`}>
+                        {card.cta}
+                        <ArrowRight size={14} />
+                      </div>
+
+                      {/* Warning Text for Admin */}
+                      {card.isPrimary && (
+                        <div className="flex items-center justify-center gap-1.5 mt-3">
+                          <Shield size={10} className="text-[#6B6F85]" />
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-[#6B6F85]">
+                            Changes affect financial records
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div
-                    className={`w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-sm md:text-base font-semibold transition-all duration-300 border ${i === 1
-                        ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30 shadow-lg shadow-purple-500/10'
-                        : 'bg-white/5 border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10'
-                      }`}
-                  >
-                    {i === 1 ? 'Enter Admin Console' : i === 0 ? 'View Dashboard' : 'Access Team Panel'}
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                  </div>
-                </div>
-              </motion.div>
-            </Link>
-          ))}
+                </motion.div>
+              </Link>
+            ))}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
